@@ -28,7 +28,18 @@ const mockTickers = [
   { symbol: "AMD", name: "Advanced Micro Devices Inc", type: "Equity", region: "United States", currency: "USD" },
   { symbol: "CSCO", name: "Cisco Systems Inc", type: "Equity", region: "United States", currency: "USD" },
   { symbol: "ADBE", name: "Adobe Inc", type: "Equity", region: "United States", currency: "USD" },
-  { symbol: "PYPL", name: "PayPal Holdings Inc", type: "Equity", region: "United States", currency: "USD" }
+  { symbol: "PYPL", name: "PayPal Holdings Inc", type: "Equity", region: "United States", currency: "USD" },
+  // Additional mock tickers for better search results
+  { symbol: "GOOG", name: "Alphabet Inc Class C", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "BRK.A", name: "Berkshire Hathaway Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "BRK.B", name: "Berkshire Hathaway Inc Class B", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "FB", name: "Meta Platforms Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "BABA", name: "Alibaba Group Holding Ltd", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "TSM", name: "Taiwan Semiconductor Manufacturing Co Ltd", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "KO", name: "Coca-Cola Co", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "PEP", name: "PepsiCo Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "NKE", name: "Nike Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "MCD", name: "McDonald's Corp", type: "Equity", region: "United States", currency: "USD" }
 ];
 
 // Mock time series data for testing
@@ -65,6 +76,15 @@ const mockTimeSeriesData = {
   }
 };
 
+// A function to check if the API response indicates a rate limit or error
+function isApiLimited(data: any): boolean {
+  return !data || 
+         data.Note !== undefined || 
+         data.Information?.includes("API rate limit") ||
+         Object.keys(data).length === 0 ||
+         (data.bestMatches && data.bestMatches.length === 0);
+}
+
 // Search for ticker symbols
 export async function searchTickers(query: string): Promise<{
   symbol: string;
@@ -73,6 +93,10 @@ export async function searchTickers(query: string): Promise<{
   region: string;
   currency: string;
 }[]> {
+  if (!query || query.trim().length < 2) {
+    return [];
+  }
+
   try {
     const response = await fetch(
       `${BASE_URL}?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(
@@ -81,13 +105,14 @@ export async function searchTickers(query: string): Promise<{
     );
     
     if (!response.ok) {
+      console.warn("API request failed:", response.statusText);
       throw new Error("Failed to fetch data from Alpha Vantage API");
     }
     
     const data = await response.json();
     
     // Check if we hit API limit or got empty results
-    if (!data.bestMatches || data.bestMatches.length === 0 || data.Note || data.Information?.includes("API rate limit")) {
+    if (isApiLimited(data)) {
       console.warn("No matches found or API limit reached");
       
       // Use mock data filtered by query
@@ -136,7 +161,7 @@ export async function getCompanyOverview(symbol: string) {
     const data = await response.json();
     
     // Check if we hit API limit
-    if (data.Note || data.Information?.includes("API rate limit")) {
+    if (isApiLimited(data)) {
       console.warn("API limit reached for company overview");
       return {
         Symbol: symbol,
@@ -182,7 +207,7 @@ export async function getDailyTimeSeries(symbol: string) {
     const data = await response.json();
     
     // Check if we hit API limit
-    if (data.Note || data.Information?.includes("API rate limit")) {
+    if (isApiLimited(data)) {
       console.warn("API limit reached for time series data");
       
       // Return mock time series data

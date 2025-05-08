@@ -27,6 +27,7 @@ export const TickerSearch = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Update local state when initialValue changes
   useEffect(() => {
@@ -68,14 +69,19 @@ export const TickerSearch = ({
       try {
         const results = await searchTickers(ticker);
         
-        // Map results to the format we need
-        const mappedResults = results.map(item => ({
-          symbol: item.symbol,
-          name: item.name
-        }));
-        
-        setSuggestions(mappedResults);
-        setShowSuggestions(mappedResults.length > 0);
+        if (results && results.length > 0) {
+          // Map results to the format we need
+          const mappedResults = results.map(item => ({
+            symbol: item.symbol,
+            name: item.name
+          }));
+          
+          setSuggestions(mappedResults);
+          setShowSuggestions(mappedResults.length > 0);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
       } catch (error) {
         console.error("Error fetching ticker suggestions:", error);
         toast({
@@ -84,13 +90,9 @@ export const TickerSearch = ({
           variant: "destructive"
         });
         
-        // Fallback to popular tickers
-        const popularTickers = ["AAPL", "MSFT", "AMZN", "TSLA", "GOOGL", "META", "NVDA"];
-        const filteredTickers = popularTickers
-          .filter(t => t.toUpperCase().includes(ticker.toUpperCase()))
-          .map(t => ({ symbol: t, name: t }));
-        setSuggestions(filteredTickers);
-        setShowSuggestions(filteredTickers.length > 0);
+        // Make sure we clear suggestions if there's an error
+        setSuggestions([]);
+        setShowSuggestions(false);
       } finally {
         setIsLoading(false);
       }
@@ -103,6 +105,11 @@ export const TickerSearch = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTicker(value);
+    
+    // Show suggestions when typing
+    if (value.trim().length >= 2) {
+      setShowSuggestions(true);
+    }
   };
 
   const selectSuggestion = (suggestion: TickerSuggestion) => {
@@ -125,10 +132,11 @@ export const TickerSearch = ({
             if (e.key === "Enter") handleSearch();
           }}
           onFocus={() => {
-            if (suggestions.length > 0) {
+            if (ticker.trim().length >= 2 && suggestions.length > 0) {
               setShowSuggestions(true);
             }
           }}
+          ref={inputRef}
         />
         <Button 
           onClick={handleSearch} 
