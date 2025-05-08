@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, ChartLine, Database, TrendingDown, TrendingUp } from "lucide-react";
 import { SentimentScore, TickerDetail, getTickerDetails } from "@/lib/mockData";
-import { getCompanyOverview, getLatestPrice } from "@/lib/api/yahooFinance";
+import { getCompanyOverview, getDailyTimeSeries } from "@/lib/api/alphaVantage";
 
 export const TickerDetails = ({ 
   ticker = "AAPL", 
@@ -25,15 +26,28 @@ export const TickerDetails = ({
       try {
         // Fetch company overview
         const overview = await getCompanyOverview(ticker);
-        if (overview) {
+        if (overview && Object.keys(overview).length > 0 && !overview.Information) {
           setCompanyData(overview);
         } else {
           setCompanyData(null);
         }
         
         // Fetch latest price data
-        const priceInfo = await getLatestPrice(ticker);
-        setPriceData(priceInfo);
+        const timeSeriesData = await getDailyTimeSeries(ticker);
+        if (timeSeriesData && timeSeriesData["Time Series (Daily)"]) {
+          const timeSeriesEntries = Object.entries(timeSeriesData["Time Series (Daily)"]);
+          if (timeSeriesEntries.length > 0) {
+            // Get the most recent data point
+            const latestData = timeSeriesEntries[0][1];
+            setPriceData({
+              price: parseFloat(latestData["4. close"]),
+              change: calculatePercentageChange(
+                parseFloat(latestData["4. close"]),
+                parseFloat(timeSeriesEntries[1]?.[1]["4. close"] || latestData["1. open"])
+              )
+            });
+          }
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
         setCompanyData(null);
@@ -45,21 +59,27 @@ export const TickerDetails = ({
     fetchData();
   }, [ticker]); // Re-run effect when ticker changes
   
+  // Calculate percentage change
+  const calculatePercentageChange = (current: number, previous: number): number => {
+    if (!previous) return 0;
+    return ((current - previous) / previous) * 100;
+  };
+  
   // Use real price data if available, otherwise fall back to mock data
   const currentPrice = priceData?.price || mockDetails.currentPrice;
   const priceChange = priceData?.change || mockDetails.priceChange;
   
   // Use real company data if available, otherwise fall back to mock data
   const details = companyData ? {
-    ticker: companyData.symbol || mockDetails.ticker,
-    name: companyData.name || mockDetails.name,
-    sector: companyData.sector || mockDetails.sector,
+    ticker: companyData.Symbol || mockDetails.ticker,
+    name: companyData.Name || mockDetails.name,
+    sector: companyData.Sector || mockDetails.sector,
     ceo: companyData.CEO || mockDetails.ceo,
-    headquarters: `${companyData.address || ''}, ${companyData.city || ''}, ${companyData.country || ''}` || mockDetails.headquarters,
-    marketCap: companyData.marketCap ? 
-      (parseInt(companyData.marketCap) >= 1000000000 ? 
-        `$${(parseInt(companyData.marketCap) / 1000000000).toFixed(2)}B` : 
-        `$${(parseInt(companyData.marketCap) / 1000000).toFixed(2)}M`) : 
+    headquarters: `${companyData.Address || ''}, ${companyData.City || ''}, ${companyData.Country || ''}` || mockDetails.headquarters,
+    marketCap: companyData.MarketCapitalization ? 
+      (parseInt(companyData.MarketCapitalization) >= 1000000000 ? 
+        `$${(parseInt(companyData.MarketCapitalization) / 1000000000).toFixed(2)}B` : 
+        `$${(parseInt(companyData.MarketCapitalization) / 1000000).toFixed(2)}M`) : 
       mockDetails.marketCap
   } : mockDetails;
   
@@ -121,7 +141,7 @@ export const TickerDetails = ({
                   <IndicatorItem 
                     icon={<ChartLine size={14} />}
                     label="Analyst Rating" 
-                    value={companyData?.analystRating || "Buy"} 
+                    value={companyData?.AnalystRating || "Buy"} 
                     trend="up" 
                   />
                   <IndicatorItem 
