@@ -16,10 +16,10 @@ import RedditPostCard from "@/components/posts/RedditPostCard";
 import PostSkeleton from "@/components/posts/PostSkeleton";
 
 export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
-  const [socialPosts, setSocialPosts] = useState<Post[]>(getRecentPosts());
+  const [twitterPosts, setTwitterPosts] = useState<Post[]>([]);
   const [redditPosts, setRedditPosts] = useState<FormattedRedditPost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("social");
+  const [activeTab, setActiveTab] = useState("twitter");
   
   const fetchRedditPosts = async () => {
     setIsLoading(true);
@@ -43,13 +43,18 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
   };
   
   useEffect(() => {
-    setSocialPosts(getRecentPosts()); // Refresh social posts on ticker change
+    // Filter only Twitter posts from the social media data
+    const allPosts = getRecentPosts();
+    const filteredTwitterPosts = allPosts.filter(post => post.platform === "Twitter");
+    setTwitterPosts(filteredTwitterPosts);
     fetchRedditPosts();
   }, [ticker]);
   
   const handleRefresh = () => {
-    if (activeTab === "social") {
-      setSocialPosts(getRecentPosts());
+    if (activeTab === "twitter") {
+      const allPosts = getRecentPosts();
+      const filteredTwitterPosts = allPosts.filter(post => post.platform === "Twitter");
+      setTwitterPosts(filteredTwitterPosts);
     } else {
       fetchRedditPosts();
     }
@@ -76,18 +81,24 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="social" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="twitter" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
-            <TabsTrigger value="social">Social Media</TabsTrigger>
+            <TabsTrigger value="twitter">Twitter</TabsTrigger>
             <TabsTrigger value="reddit">Reddit</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="social">
+          <TabsContent value="twitter">
             <ScrollArea className="h-[300px]">
               <div className="space-y-4">
-                {socialPosts.map((post) => (
-                  <SocialPostCard key={post.id} post={post} />
-                ))}
+                {twitterPosts.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    No Twitter posts found for {ticker}
+                  </div>
+                ) : (
+                  twitterPosts.map((post) => (
+                    <SocialPostCard key={post.id} post={post} />
+                  ))
+                )}
               </div>
             </ScrollArea>
           </TabsContent>
