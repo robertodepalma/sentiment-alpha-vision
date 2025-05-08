@@ -1,9 +1,8 @@
 
 // Alpha Vantage API integration
 
-// Note: In a production environment, you should use environment variables
-// or a backend proxy to protect API keys
-const ALPHA_VANTAGE_API_KEY = "demo"; // Replace with your Alpha Vantage API key
+// Using the provided API key
+const ALPHA_VANTAGE_API_KEY = "YG8K64TYVLJKRD21"; 
 
 // Base URL for Alpha Vantage API
 const BASE_URL = "https://www.alphavantage.co/query";
