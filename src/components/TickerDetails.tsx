@@ -103,9 +103,9 @@ export const TickerDetails = ({
       name: finnhubData.name || mockDetails.name,
       sector: finnhubData.finnhubIndustry || mockDetails.sector,
       industry: finnhubData.finnhubIndustry || 'N/A',
-      ceo: "N/A", // Finnhub doesn't provide CEO information
+      ceo: finnhubData.ceo || 'N/A', // Extract CEO from Finnhub data if available
       employees: finnhubData.employeeTotal?.toString() || 'N/A',
-      headquarters: `${finnhubData.country || ""}` || mockDetails.headquarters,
+      headquarters: `${finnhubData.city || ""} ${finnhubData.state || ""}, ${finnhubData.country || ""}`.trim() || mockDetails.headquarters,
       marketCap: finnhubData.marketCapitalization ? 
         (finnhubData.marketCapitalization >= 1000 ? 
           `$${(finnhubData.marketCapitalization / 1000).toFixed(2)}B` : 
