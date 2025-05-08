@@ -4,6 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { getNewsSentiment } from "@/lib/api/finnhub";
 import { getCurrentSentiment } from "@/lib/mockData";
+import { SentimentScore } from "@/lib/types";
+
+// Define the combined sentiment type that can come from different sources
+type CombinedSentiment = SentimentScore | {
+  score: number;
+  trend: string;
+  change: number;
+};
 
 export const SentimentOverview = ({ ticker = "AAPL" }: { ticker?: string }) => {
   const [sentimentData, setSentimentData] = useState<any>(null);
@@ -36,11 +44,16 @@ export const SentimentOverview = ({ ticker = "AAPL" }: { ticker?: string }) => {
   }, [ticker]);
 
   // Convert Finnhub sentiment to our format if available
-  const sentiment = sentimentData ? {
+  const sentiment: CombinedSentiment = sentimentData ? {
     score: sentimentData.companyNewsScore,
     trend: sentimentData.sentimentChange > 0 ? "up" : "down",
     change: Math.abs(sentimentData.sentimentChange) * 100, // Convert to percentage
   } : mockSentiment;
+  
+  // Type guard to check if the sentiment data has trend and change properties
+  const hasTrendData = (data: CombinedSentiment): data is { score: number; trend: string; change: number } => {
+    return 'trend' in data && 'change' in data;
+  };
   
   return (
     <Card className="w-full">
@@ -68,18 +81,20 @@ export const SentimentOverview = ({ ticker = "AAPL" }: { ticker?: string }) => {
               </div>
             </div>
             
-            <div className="flex flex-col items-center">
-              <div className={`text-2xl font-bold mb-2 flex items-center ${
-                sentiment.trend === "up" ? "text-green-500" : "text-red-500"
-              }`}>
-                {sentiment.trend === "up" ? <TrendingUp className="mr-1" size={24} /> : <TrendingDown className="mr-1" size={24} />}
-                {sentiment.change.toFixed(2)}%
+            {hasTrendData(sentiment) && (
+              <div className="flex flex-col items-center">
+                <div className={`text-2xl font-bold mb-2 flex items-center ${
+                  sentiment.trend === "up" ? "text-green-500" : "text-red-500"
+                }`}>
+                  {sentiment.trend === "up" ? <TrendingUp className="mr-1" size={24} /> : <TrendingDown className="mr-1" size={24} />}
+                  {sentiment.change.toFixed(2)}%
+                </div>
+                <div className="text-sm text-muted-foreground">Weekly Change</div>
+                <div className="mt-1 text-xs">
+                  {sentiment.trend === "up" ? "Improving" : "Declining"}
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">Weekly Change</div>
-              <div className="mt-1 text-xs">
-                {sentiment.trend === "up" ? "Improving" : "Declining"}
-              </div>
-            </div>
+            )}
             
             {sentimentData && (
               <div className="col-span-2 mt-4">

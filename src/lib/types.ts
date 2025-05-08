@@ -4,6 +4,8 @@
 export type SentimentScore = {
   score: number;
   label: "positive" | "negative" | "neutral";
+  trend?: string; // Adding trend as optional
+  change?: number; // Adding change as optional
 };
 
 export type AggregationMethod = "B-A1" | "B-A2" | "B-D1" | "B-D2";

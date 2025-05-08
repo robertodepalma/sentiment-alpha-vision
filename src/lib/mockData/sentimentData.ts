@@ -21,11 +21,36 @@ export const generateSentimentData = (): SentimentDataPoint[] => {
 
 export const getCurrentSentiment = (ticker: string = "AAPL"): SentimentScore => {
   const sentiments: Record<string, SentimentScore> = {
-    "AAPL": { score: 0.68, label: "positive" },
-    "MSFT": { score: 0.52, label: "positive" },
-    "AMZN": { score: 0.73, label: "positive" },
-    "TSLA": { score: -0.42, label: "negative" },
-    "GOOGL": { score: 0.18, label: "neutral" }
+    "AAPL": { 
+      score: 0.68, 
+      label: "positive",
+      trend: "up",
+      change: 5.2
+    },
+    "MSFT": { 
+      score: 0.52, 
+      label: "positive",
+      trend: "up",
+      change: 3.1
+    },
+    "AMZN": { 
+      score: 0.73, 
+      label: "positive",
+      trend: "up",
+      change: 8.4
+    },
+    "TSLA": { 
+      score: -0.42, 
+      label: "negative",
+      trend: "down",
+      change: -6.7
+    },
+    "GOOGL": { 
+      score: 0.18, 
+      label: "neutral",
+      trend: "down",
+      change: -1.2
+    }
   };
   
   return sentiments[ticker] || sentiments["AAPL"];
