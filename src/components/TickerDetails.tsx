@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, ChartLine, Database, TrendingDown, TrendingUp } from "lucide-react";
 import { SentimentScore, TickerDetail, getTickerDetails } from "@/lib/mockData";
-import { getCompanyOverview } from "@/lib/api/alphaVantage";
+import { getCompanyOverview, getDailyTimeSeries } from "@/lib/api/alphaVantage";
 
 export const TickerDetails = ({ 
   ticker = "AAPL", 
@@ -12,6 +13,7 @@ export const TickerDetails = ({
   sentiment?: SentimentScore;
 }) => {
   const [companyData, setCompanyData] = useState<any>(null);
+  const [priceData, setPriceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   // Get mock data for the current ticker
@@ -19,36 +21,61 @@ export const TickerDetails = ({
   
   // Fetch real data when ticker changes
   useEffect(() => {
-    const fetchCompanyData = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        const data = await getCompanyOverview(ticker);
-        if (data && Object.keys(data).length > 0 && !data.Information) {
-          setCompanyData(data);
+        // Fetch company overview
+        const overview = await getCompanyOverview(ticker);
+        if (overview && Object.keys(overview).length > 0 && !overview.Information) {
+          setCompanyData(overview);
         } else {
-          // If we get an error response or demo message, use mock data
           setCompanyData(null);
         }
+        
+        // Fetch latest price data
+        const timeSeriesData = await getDailyTimeSeries(ticker);
+        if (timeSeriesData && timeSeriesData["Time Series (Daily)"]) {
+          const timeSeriesEntries = Object.entries(timeSeriesData["Time Series (Daily)"]);
+          if (timeSeriesEntries.length > 0) {
+            // Get the most recent data point
+            const latestData = timeSeriesEntries[0][1];
+            setPriceData({
+              price: parseFloat(latestData["4. close"]),
+              change: calculatePercentageChange(
+                parseFloat(latestData["4. close"]),
+                parseFloat(timeSeriesEntries[1]?.[1]["4. close"] || latestData["1. open"])
+              )
+            });
+          }
+        }
       } catch (error) {
-        console.error("Error fetching company data:", error);
+        console.error("Error fetching data:", error);
         setCompanyData(null);
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchCompanyData();
+    fetchData();
   }, [ticker]); // Re-run effect when ticker changes
   
-  // Use real data if available, otherwise fall back to mock data
+  // Calculate percentage change
+  const calculatePercentageChange = (current: number, previous: number): number => {
+    if (!previous) return 0;
+    return ((current - previous) / previous) * 100;
+  };
+  
+  // Use real price data if available, otherwise fall back to mock data
+  const currentPrice = priceData?.price || mockDetails.currentPrice;
+  const priceChange = priceData?.change || mockDetails.priceChange;
+  
+  // Use real company data if available, otherwise fall back to mock data
   const details = companyData ? {
     ticker: companyData.Symbol || mockDetails.ticker,
     name: companyData.Name || mockDetails.name,
     sector: companyData.Sector || mockDetails.sector,
     ceo: companyData.CEO || mockDetails.ceo,
     headquarters: `${companyData.Address || ''}, ${companyData.City || ''}, ${companyData.Country || ''}` || mockDetails.headquarters,
-    currentPrice: parseFloat(companyData.LatestPrice) || mockDetails.currentPrice,
-    priceChange: parseFloat(companyData.ChangePercent) || mockDetails.priceChange,
     marketCap: companyData.MarketCapitalization ? 
       (parseInt(companyData.MarketCapitalization) >= 1000000000 ? 
         `$${(parseInt(companyData.MarketCapitalization) / 1000000000).toFixed(2)}B` : 
@@ -65,10 +92,10 @@ export const TickerDetails = ({
             <span className="text-muted-foreground">{details.name}</span>
           </div>
           <div className={`flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-            details.priceChange > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+            priceChange > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
           }`}>
-            {details.priceChange > 0 ? <TrendingUp className="mr-1" size={12} /> : <TrendingDown className="mr-1" size={12} />}
-            {details.priceChange > 0 ? "+" : ""}{details.priceChange.toFixed(2)}%
+            {priceChange > 0 ? <TrendingUp className="mr-1" size={12} /> : <TrendingDown className="mr-1" size={12} />}
+            {priceChange > 0 ? "+" : ""}{priceChange.toFixed(2)}%
           </div>
         </div>
       </CardHeader>
@@ -82,7 +109,7 @@ export const TickerDetails = ({
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Current Price</div>
-                <div className="text-xl font-bold">${details.currentPrice.toFixed(2)}</div>
+                <div className="text-xl font-bold">${currentPrice.toFixed(2)}</div>
               </div>
               <div className="space-y-1">
                 <div className="text-sm text-muted-foreground">Market Cap</div>
