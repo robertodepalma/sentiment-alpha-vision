@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRecentPosts } from "@/lib/mockData";
@@ -29,13 +28,19 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
       
       if (posts.length === 0) {
         // If API fails or returns no results, use mock data
-        setRedditPosts(getMockRedditPosts(ticker));
+        const mockData = getMockRedditPosts(ticker);
+        // Sort mock data by created_utc in descending order (newest first)
+        mockData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setRedditPosts(mockData);
         toast.info("We're showing sample data because the Reddit API returned no results.");
       }
     } catch (error) {
       console.error("Error fetching Reddit posts:", error);
       // Use mock data as fallback
-      setRedditPosts(getMockRedditPosts(ticker));
+      const mockData = getMockRedditPosts(ticker);
+      // Sort mock data by timestamp in descending order (newest first)
+      mockData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setRedditPosts(mockData);
       toast.info("We're showing sample data because the Reddit API could not be accessed.");
     } finally {
       setIsLoading(false);
@@ -46,14 +51,60 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
     // Filter only Twitter posts from the social media data
     const allPosts = getRecentPosts();
     const filteredTwitterPosts = allPosts.filter(post => post.platform === "Twitter");
+    // Sort Twitter posts by timestamp too (newest first)
+    filteredTwitterPosts.sort((a, b) => {
+      const timeA = a.timestamp.includes("ago") ? 
+        parseRelativeTime(a.timestamp) : 
+        new Date(a.timestamp).getTime();
+      const timeB = b.timestamp.includes("ago") ? 
+        parseRelativeTime(b.timestamp) : 
+        new Date(b.timestamp).getTime();
+      return timeB - timeA;
+    });
     setTwitterPosts(filteredTwitterPosts);
     fetchRedditPosts();
   }, [ticker]);
+  
+  // Helper function to parse relative time strings like "2 minutes ago" into timestamps
+  const parseRelativeTime = (relativeTime: string): number => {
+    const now = Date.now();
+    if (relativeTime === "just now") return now;
+    
+    const match = relativeTime.match(/(\d+)\s+(minute|minutes|hour|hours|day|days)\s+ago/);
+    if (!match) return now;
+    
+    const value = parseInt(match[1]);
+    const unit = match[2];
+    
+    switch(unit) {
+      case 'minute':
+      case 'minutes':
+        return now - (value * 60 * 1000);
+      case 'hour':
+      case 'hours':
+        return now - (value * 60 * 60 * 1000);
+      case 'day':
+      case 'days':
+        return now - (value * 24 * 60 * 60 * 1000);
+      default:
+        return now;
+    }
+  };
   
   const handleRefresh = () => {
     if (activeTab === "twitter") {
       const allPosts = getRecentPosts();
       const filteredTwitterPosts = allPosts.filter(post => post.platform === "Twitter");
+      // Sort Twitter posts by timestamp (newest first)
+      filteredTwitterPosts.sort((a, b) => {
+        const timeA = a.timestamp.includes("ago") ? 
+          parseRelativeTime(a.timestamp) : 
+          new Date(a.timestamp).getTime();
+        const timeB = b.timestamp.includes("ago") ? 
+          parseRelativeTime(b.timestamp) : 
+          new Date(b.timestamp).getTime();
+        return timeB - timeA;
+      });
       setTwitterPosts(filteredTwitterPosts);
     } else {
       fetchRedditPosts();

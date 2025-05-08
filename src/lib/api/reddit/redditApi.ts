@@ -37,7 +37,7 @@ export const getRedditPosts = async (ticker: string, limit: number = 10): Promis
     // First try the public JSON API (doesn't require authentication)
     try {
       const response = await fetch(
-        `https://www.reddit.com/search.json?q=${ticker}%20stock&sort=relevance&limit=${limit}`
+        `https://www.reddit.com/search.json?q=${ticker}%20stock&sort=new&limit=${limit}`
       );
       
       if (response.ok) {
@@ -57,7 +57,7 @@ export const getRedditPosts = async (ticker: string, limit: number = 10): Promis
     }
 
     const response = await fetch(
-      `https://oauth.reddit.com/search?q=${ticker}%20stock&sort=relevance&limit=${limit}`, 
+      `https://oauth.reddit.com/search?q=${ticker}%20stock&sort=new&limit=${limit}`, 
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,

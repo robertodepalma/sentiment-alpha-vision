@@ -5,7 +5,8 @@ import { RedditPost, FormattedRedditPost } from './types';
  * Format Reddit API response into a consistent format
  */
 export const formatRedditData = (posts: RedditPost[]): FormattedRedditPost[] => {
-  return posts.map((post) => {
+  // First format the posts
+  const formattedPosts = posts.map((post) => {
     // Simple sentiment scoring based on title keywords
     const sentiment = calculateSimpleSentiment(post.title + " " + post.selftext);
     
@@ -24,6 +25,19 @@ export const formatRedditData = (posts: RedditPost[]): FormattedRedditPost[] => 
       sentimentLabel: getSentimentLabel(sentiment),
     };
   });
+  
+  // Then sort by created_utc in descending order (newest first)
+  // We use the created_utc timestamp for accurate sorting
+  return formattedPosts.sort((a, b) => {
+    // Convert relative timestamps to comparable values
+    const timeA = a.timestamp.includes("ago") ? 
+      parseRelativeTime(a.timestamp) : 
+      new Date(a.timestamp).getTime();
+    const timeB = b.timestamp.includes("ago") ? 
+      parseRelativeTime(b.timestamp) : 
+      new Date(b.timestamp).getTime();
+    return timeB - timeA;
+  });
 };
 
 /**
@@ -40,6 +54,34 @@ export const formatRedditTimestamp = (timestamp: number): string => {
   
   const date = new Date(timestamp * 1000);
   return date.toLocaleDateString();
+};
+
+/**
+ * Helper function to parse relative time strings like "2 minutes ago" into timestamps
+ */
+const parseRelativeTime = (relativeTime: string): number => {
+  const now = Date.now();
+  if (relativeTime === "just now") return now;
+  
+  const match = relativeTime.match(/(\d+)\s+(minute|minutes|hour|hours|day|days)\s+ago/);
+  if (!match) return now;
+  
+  const value = parseInt(match[1]);
+  const unit = match[2];
+  
+  switch(unit) {
+    case 'minute':
+    case 'minutes':
+      return now - (value * 60 * 1000);
+    case 'hour':
+    case 'hours':
+      return now - (value * 60 * 60 * 1000);
+    case 'day':
+    case 'days':
+      return now - (value * 24 * 60 * 60 * 1000);
+    default:
+      return now;
+  }
 };
 
 /**
