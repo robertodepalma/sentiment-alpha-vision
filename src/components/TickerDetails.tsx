@@ -1,8 +1,8 @@
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, ChartLine, Database, TrendingDown, TrendingUp } from "lucide-react";
 import { SentimentScore, TickerDetail, getTickerDetails } from "@/lib/mockData";
+import { getCompanyOverview } from "@/lib/api/alphaVantage";
 
 export const TickerDetails = ({ 
   ticker = "AAPL", 
@@ -11,7 +11,46 @@ export const TickerDetails = ({
   ticker?: string;
   sentiment?: SentimentScore;
 }) => {
-  const details = getTickerDetails(ticker);
+  const [companyData, setCompanyData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Fallback to mock data
+  const mockDetails = getTickerDetails(ticker);
+  
+  // Attempt to fetch real data when ticker changes
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getCompanyOverview(ticker);
+        if (data && Object.keys(data).length > 0) {
+          setCompanyData(data);
+        }
+      } catch (error) {
+        console.error("Error fetching company data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchCompanyData();
+  }, [ticker]);
+  
+  // Use real data if available, otherwise fall back to mock data
+  const details = companyData ? {
+    ticker: companyData.Symbol || mockDetails.ticker,
+    name: companyData.Name || mockDetails.name,
+    sector: companyData.Sector || mockDetails.sector,
+    ceo: companyData.CEO || mockDetails.ceo,
+    headquarters: `${companyData.Address || ''}, ${companyData.City || ''}, ${companyData.Country || ''}` || mockDetails.headquarters,
+    currentPrice: parseFloat(companyData.LatestPrice) || mockDetails.currentPrice,
+    priceChange: parseFloat(companyData.ChangePercent) || mockDetails.priceChange,
+    marketCap: companyData.MarketCapitalization ? 
+      (parseInt(companyData.MarketCapitalization) >= 1000000000 ? 
+        `$${(parseInt(companyData.MarketCapitalization) / 1000000000).toFixed(2)}B` : 
+        `$${(parseInt(companyData.MarketCapitalization) / 1000000).toFixed(2)}M`) : 
+      mockDetails.marketCap
+  } : mockDetails;
   
   return (
     <Card className="w-full">
@@ -30,53 +69,61 @@ export const TickerDetails = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">Current Price</div>
-            <div className="text-xl font-bold">${details.currentPrice.toFixed(2)}</div>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
-          <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">Market Cap</div>
-            <div className="text-xl font-bold">{details.marketCap}</div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
+        ) : (
           <div>
-            <div className="text-sm text-muted-foreground mb-1">Company Details</div>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Sector</span>
-                <span className="font-medium">{details.sector}</span>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Current Price</div>
+                <div className="text-xl font-bold">${details.currentPrice.toFixed(2)}</div>
               </div>
-              <div className="flex justify-between">
-                <span>CEO</span>
-                <span className="font-medium">{details.ceo}</span>
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Market Cap</div>
+                <div className="text-xl font-bold">{details.marketCap}</div>
               </div>
-              <div className="flex justify-between">
-                <span>Headquarters</span>
-                <span className="font-medium">{details.headquarters}</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">Company Details</div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Sector</span>
+                    <span className="font-medium">{details.sector}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>CEO</span>
+                    <span className="font-medium">{details.ceo}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Headquarters</span>
+                    <span className="font-medium">{details.headquarters}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground mb-1">Key Indicators</div>
+                <div className="flex flex-col gap-2">
+                  <IndicatorItem 
+                    icon={<ChartLine size={14} />}
+                    label="Analyst Rating" 
+                    value={companyData?.AnalystRating || "Buy"} 
+                    trend="up" 
+                  />
+                  <IndicatorItem 
+                    icon={<Database size={14} />}
+                    label="Sentiment Score" 
+                    value={sentiment?.score.toFixed(2) || "0.00"} 
+                    trend={getSentimentTrend(sentiment?.score)} 
+                  />
+                </div>
               </div>
             </div>
           </div>
-          <div>
-            <div className="text-sm text-muted-foreground mb-1">Key Indicators</div>
-            <div className="flex flex-col gap-2">
-              <IndicatorItem 
-                icon={<ChartLine size={14} />}
-                label="Analyst Rating" 
-                value="Buy" 
-                trend="up" 
-              />
-              <IndicatorItem 
-                icon={<Database size={14} />}
-                label="Sentiment Score" 
-                value={sentiment?.score.toFixed(2) || "0.00"} 
-                trend={getSentimentTrend(sentiment?.score)} 
-              />
-            </div>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

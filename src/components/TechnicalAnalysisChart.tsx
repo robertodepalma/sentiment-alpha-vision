@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -19,6 +18,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { getDailyTimeSeries, formatTimeSeriesForChart } from "@/lib/api/alphaVantage";
 
 type TimeRange = "1D" | "1W" | "1M" | "3M" | "1Y";
 type Indicator = "sma" | "ema" | "rsi" | "macd" | "bb";
@@ -96,6 +96,33 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
     macd: { name: "MACD", color: "hsl(var(--chart-orange))", visible: false },
     bb: { name: "Bollinger", color: "hsl(var(--chart-red))", visible: false }
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [realData, setRealData] = useState<any[]>([]);
+  const [useRealData, setUseRealData] = useState(false);
+  
+  // Fetch real data from Alpha Vantage
+  useEffect(() => {
+    const fetchStockData = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getDailyTimeSeries(ticker);
+        if (data && data["Time Series (Daily)"]) {
+          const formattedData = formatTimeSeriesForChart(data);
+          setRealData(formattedData);
+          setUseRealData(true);
+        } else {
+          setUseRealData(false);
+        }
+      } catch (error) {
+        console.error("Error fetching stock data:", error);
+        setUseRealData(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchStockData();
+  }, [ticker]);
   
   // Get data based on time range
   const getDays = (): number => {
@@ -109,7 +136,14 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
     }
   };
   
-  const stockData = generateStockData(ticker, getDays());
+  // Use real data if available, otherwise fallback to mock data
+  const mockStockData = generateStockData(ticker, getDays());
+  
+  // Filter real data based on timeRange
+  const filteredRealData = realData.slice(-getDays());
+  
+  // Final data to use for charts
+  const stockData = useRealData ? filteredRealData : mockStockData;
   
   // Toggle indicator visibility
   const toggleIndicator = (indicator: Indicator) => {
@@ -130,6 +164,7 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
             <CardTitle className="text-xl">{ticker} Technical Analysis</CardTitle>
             <CardDescription>
               Price data and technical indicators
+              {!useRealData && <span className="text-xs ml-2 text-muted-foreground">(Using simulated data)</span>}
             </CardDescription>
           </div>
           <ToggleGroup type="single" value={timeRange} onValueChange={(val) => val && setTimeRange(val as TimeRange)}>
@@ -142,177 +177,185 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="price" value={selectedTab} onValueChange={setSelectedTab}>
-          <div className="flex justify-between items-center mb-4">
-            <TabsList>
-              <TabsTrigger value="price">Price</TabsTrigger>
-              <TabsTrigger value="volume">Volume</TabsTrigger>
-              <TabsTrigger value="indicators">Indicators</TabsTrigger>
-            </TabsList>
-            
-            <div className="flex gap-2">
-              {Object.entries(indicators).map(([key, config]) => (
-                <button
-                  key={key}
-                  className={`px-2 py-1 text-xs rounded-md font-medium border ${config.visible ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}
-                  onClick={() => toggleIndicator(key as Indicator)}
-                >
-                  {config.name}
-                </button>
-              ))}
-            </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-[380px]">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
           </div>
-          
-          <TabsContent value="price" className="h-[380px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={stockData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    borderColor: 'hsl(var(--border))',
-                    color: 'hsl(var(--foreground))'
-                  }}
-                />
-                <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="price" 
-                  fill="hsl(var(--chart-blue))" 
-                  fillOpacity={0.1} 
-                  stroke="hsl(var(--chart-blue))" 
-                  name="Price"
-                />
-                {indicators.sma.visible && (
-                  <Line 
-                    type="monotone" 
-                    dataKey="sma20" 
-                    stroke={indicators.sma.color} 
-                    dot={false} 
-                    name="SMA (20)"
+        ) : (
+          <Tabs defaultValue="price" value={selectedTab} onValueChange={setSelectedTab}>
+            <div className="flex justify-between items-center mb-4">
+              <TabsList>
+                <TabsTrigger value="price">Price</TabsTrigger>
+                <TabsTrigger value="volume">Volume</TabsTrigger>
+                <TabsTrigger value="indicators">Indicators</TabsTrigger>
+              </TabsList>
+              
+              <div className="flex gap-2">
+                {Object.entries(indicators).map(([key, config]) => (
+                  <button
+                    key={key}
+                    className={`px-2 py-1 text-xs rounded-md font-medium border ${config.visible ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}
+                    onClick={() => toggleIndicator(key as Indicator)}
+                  >
+                    {config.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <TabsContent value="price" className="h-[380px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={stockData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--foreground))'
+                    }}
                   />
-                )}
-                {indicators.sma.visible && (
-                  <Line 
+                  <Legend />
+                  <Area 
                     type="monotone" 
-                    dataKey="sma50" 
-                    stroke={indicators.sma.color} 
-                    strokeDasharray="5 5"
-                    dot={false} 
-                    name="SMA (50)"
+                    dataKey="price" 
+                    fill="hsl(var(--chart-blue))" 
+                    fillOpacity={0.1} 
+                    stroke="hsl(var(--chart-blue))" 
+                    name="Price"
                   />
-                )}
-                {indicators.ema.visible && (
-                  <Line 
-                    type="monotone" 
-                    dataKey="ema" 
-                    stroke={indicators.ema.color}
-                    dot={false} 
-                    name="EMA (21)"
-                  />
-                )}
-                {indicators.bb.visible && (
-                  <>
+                  {indicators.sma.visible && (
                     <Line 
                       type="monotone" 
-                      dataKey="upperBand" 
-                      stroke={indicators.bb.color}
-                      strokeDasharray="3 3"
+                      dataKey="sma20" 
+                      stroke={indicators.sma.color} 
                       dot={false} 
-                      name="Upper Band"
+                      name="SMA (20)"
                     />
+                  )}
+                  {indicators.sma.visible && (
                     <Line 
                       type="monotone" 
-                      dataKey="lowerBand" 
-                      stroke={indicators.bb.color}
-                      strokeDasharray="3 3"
+                      dataKey="sma50" 
+                      stroke={indicators.sma.color} 
+                      strokeDasharray="5 5"
                       dot={false} 
-                      name="Lower Band"
+                      name="SMA (50)"
                     />
-                  </>
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </TabsContent>
-          
-          <TabsContent value="volume" className="h-[380px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stockData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    borderColor: 'hsl(var(--border))',
-                    color: 'hsl(var(--foreground))'
-                  }}
-                  formatter={(value) => new Intl.NumberFormat().format(value as number)}
-                />
-                <Bar 
-                  dataKey="volume" 
-                  fill="hsl(var(--chart-purple))" 
-                  name="Volume" 
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </TabsContent>
-          
-          <TabsContent value="indicators" className="h-[380px]">
-            <Select defaultValue="rsi" onValueChange={(val) => {}}>
-              <SelectTrigger className="w-[180px] mb-2">
-                <SelectValue placeholder="Select Indicator" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rsi">RSI</SelectItem>
-                <SelectItem value="macd">MACD</SelectItem>
-              </SelectContent>
-            </Select>
-            <ResponsiveContainer width="100%" height="90%">
-              <ComposedChart data={stockData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    borderColor: 'hsl(var(--border))',
-                    color: 'hsl(var(--foreground))'
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="rsi" 
-                  stroke={indicators.rsi.color} 
-                  dot={false}
-                  name="RSI (14)"
-                />
-                {/* Reference lines for RSI */}
-                <Line 
-                  type="monotone" 
-                  dataKey={() => 70} 
-                  stroke="hsl(var(--muted-foreground))" 
-                  strokeDasharray="3 3"
-                  dot={false}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey={() => 30} 
-                  stroke="hsl(var(--muted-foreground))" 
-                  strokeDasharray="3 3"
-                  dot={false}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </TabsContent>
-        </Tabs>
+                  )}
+                  {indicators.ema.visible && (
+                    <Line 
+                      type="monotone" 
+                      dataKey="ema" 
+                      stroke={indicators.ema.color}
+                      dot={false} 
+                      name="EMA (21)"
+                    />
+                  )}
+                  {indicators.bb.visible && (
+                    <>
+                      <Line 
+                        type="monotone" 
+                        dataKey="upperBand" 
+                        stroke={indicators.bb.color}
+                        strokeDasharray="3 3"
+                        dot={false} 
+                        name="Upper Band"
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="lowerBand" 
+                        stroke={indicators.bb.color}
+                        strokeDasharray="3 3"
+                        dot={false} 
+                        name="Lower Band"
+                      />
+                    </>
+                  )}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </TabsContent>
+            
+            <TabsContent value="volume" className="h-[380px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stockData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--foreground))'
+                    }}
+                    formatter={(value) => new Intl.NumberFormat().format(value as number)}
+                  />
+                  <Bar 
+                    dataKey="volume" 
+                    fill="hsl(var(--chart-purple))" 
+                    name="Volume" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </TabsContent>
+            
+            <TabsContent value="indicators" className="h-[380px]">
+              <Select defaultValue="rsi" onValueChange={(val) => {}}>
+                <SelectTrigger className="w-[180px] mb-2">
+                  <SelectValue placeholder="Select Indicator" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rsi">RSI</SelectItem>
+                  <SelectItem value="macd">MACD</SelectItem>
+                </SelectContent>
+              </Select>
+              <ResponsiveContainer width="100%" height="90%">
+                <ComposedChart data={stockData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      borderColor: 'hsl(var(--border))',
+                      color: 'hsl(var(--foreground))'
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="rsi" 
+                    stroke={indicators.rsi.color} 
+                    dot={false}
+                    name="RSI (14)"
+                  />
+                  {/* Reference lines for RSI */}
+                  <Line 
+                    type="monotone" 
+                    dataKey={() => 70} 
+                    stroke="hsl(var(--muted-foreground))" 
+                    strokeDasharray="3 3"
+                    dot={false}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey={() => 30} 
+                    stroke="hsl(var(--muted-foreground))" 
+                    strokeDasharray="3 3"
+                    dot={false}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </TabsContent>
+          </Tabs>
+        )}
         
         <div className="mt-4 flex justify-between text-xs text-muted-foreground">
           <div>
-            Note: This chart shows simulated data for demonstration purposes.
+            {useRealData 
+              ? "Source: Alpha Vantage API"
+              : "Note: This chart shows simulated data for demonstration purposes."}
           </div>
           <div>
             Last updated: {new Date().toLocaleTimeString()}
