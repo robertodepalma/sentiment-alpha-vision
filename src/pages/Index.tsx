@@ -65,7 +65,7 @@ const Index = () => {
       <footer className="border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-14 md:flex-row">
           <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            Built with the 2024 Liu & Son framework for social media sentiment analysis
+            This information is not to be considered financial advice.
           </p>
         </div>
       </footer>
