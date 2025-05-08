@@ -1,4 +1,3 @@
-
 import { subDays, format } from "date-fns";
 
 export type SentimentScore = {
@@ -30,6 +29,7 @@ export type Post = {
   id: string;
   platform: string;
   author: string;
+  authorFollowers: number;
   content: string;
   timestamp: string;
   sentiment: number;
@@ -97,6 +97,7 @@ export const getRecentPosts = (): Post[] => {
       id: "1",
       platform: "Twitter",
       author: "MarketWatcher",
+      authorFollowers: 145000,
       content: "AAPL showing strong momentum after earnings beat. Expect continued upward trajectory into next quarter.",
       timestamp: "2 minutes ago",
       sentiment: 0.82,
@@ -109,6 +110,7 @@ export const getRecentPosts = (): Post[] => {
       id: "2",
       platform: "Reddit",
       author: "InvestorPro",
+      authorFollowers: 23500,
       content: "Just analyzed TSLA's production numbers. They're concerning. Be careful with this one.",
       timestamp: "15 minutes ago",
       sentiment: -0.65,
@@ -121,6 +123,7 @@ export const getRecentPosts = (): Post[] => {
       id: "3",
       platform: "StockTwits",
       author: "TradingMaster",
+      authorFollowers: 8900,
       content: "MSFT cloud division performance was in-line with expectations. Nothing too exciting.",
       timestamp: "42 minutes ago",
       sentiment: 0.12,
@@ -133,6 +136,7 @@ export const getRecentPosts = (): Post[] => {
       id: "4",
       platform: "Twitter",
       author: "FinanceGuru",
+      authorFollowers: 375000,
       content: "AMZN's logistics improvements will dramatically cut costs. This is a game-changer!",
       timestamp: "1 hour ago",
       sentiment: 0.89,
@@ -145,6 +149,7 @@ export const getRecentPosts = (): Post[] => {
       id: "5",
       platform: "News Media",
       author: "Financial Times",
+      authorFollowers: 2500000,
       content: "GOOGL facing new regulatory challenges in EU markets. Uncertain times ahead for the tech giant.",
       timestamp: "2 hours ago",
       sentiment: -0.42,
@@ -248,4 +253,87 @@ export const getAggregationMethods = (): { id: AggregationMethod, name: string, 
       description: "Adjusts weights based on historical accuracy"
     }
   ];
+};
+
+export const getHypeScore = (ticker: string = "AAPL"): {
+  score: number;
+  breakdown: {
+    category: string;
+    score: number;
+    weight: number;
+    weightedScore: number;
+    followers: number;
+  }[];
+} => {
+  // Get sample posts for the ticker
+  const posts = getRecentPosts();
+  
+  // Group posts by sentiment
+  const positive = posts.filter(post => post.sentiment > 0.2);
+  const neutral = posts.filter(post => post.sentiment >= -0.2 && post.sentiment <= 0.2);
+  const negative = posts.filter(post => post.sentiment < -0.2);
+  
+  // Calculate follower-weighted scores
+  const calculateWeightedScore = (posts: Post[]): {
+    score: number;
+    weight: number;
+    weightedScore: number;
+    followers: number;
+  } => {
+    if (posts.length === 0) return { score: 0, weight: 0, weightedScore: 0, followers: 0 };
+    
+    const totalFollowers = posts.reduce((sum, post) => sum + post.authorFollowers, 0);
+    const avgSentiment = posts.reduce((sum, post) => sum + post.sentiment, 0) / posts.length;
+    
+    // Weight is based on total followers (logarithmic scale to prevent domination by outliers)
+    const weight = Math.log10(totalFollowers + 1) / 5;
+    
+    return {
+      score: avgSentiment,
+      weight: weight,
+      weightedScore: avgSentiment * weight,
+      followers: totalFollowers
+    };
+  };
+  
+  const positiveStats = calculateWeightedScore(positive);
+  const neutralStats = calculateWeightedScore(neutral);
+  const negativeStats = calculateWeightedScore(negative);
+  
+  // Calculate overall hype score (range 0-100)
+  // Positive sentiment contributes positively, negative sentiment detracts, neutral has minimal impact
+  const rawHypeScore = 
+    positiveStats.weightedScore * 100 + 
+    neutralStats.weightedScore * 20 - 
+    Math.abs(negativeStats.weightedScore) * 70;
+  
+  // Normalize to 0-100 scale
+  const normalizedScore = Math.min(100, Math.max(0, 50 + rawHypeScore));
+  
+  return {
+    score: normalizedScore,
+    breakdown: [
+      {
+        category: "Positive",
+        score: positiveStats.score,
+        weight: positiveStats.weight,
+        weightedScore: positiveStats.weightedScore,
+        followers: positiveStats.followers
+      },
+      {
+        category: "Neutral", 
+        score: neutralStats.score,
+        weight: neutralStats.weight,
+        weightedScore: neutralStats.weightedScore,
+        followers: neutralStats.followers
+      },
+      {
+        category: "Negative",
+        score: negativeStats.score,
+        weight: negativeStats.weight,
+        weightedScore: negativeStats.weightedScore,
+        followers: negativeStats.followers
+      }
+    ]
+  };
 };
