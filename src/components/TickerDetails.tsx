@@ -6,6 +6,7 @@ import { SentimentScore, TickerDetail } from "@/lib/types";
 import { getCompanyOverview, getDailyTimeSeries, getCompanyEarnings } from "@/lib/api/alphaVantage";
 import { getQuote, getCompanyProfile } from "@/lib/api/finnhub";
 import { getTickerDetails } from "@/lib/mockData";
+import { useToast } from "@/hooks/use-toast";
 
 export const TickerDetails = ({ 
   ticker = "AAPL", 
@@ -19,6 +20,8 @@ export const TickerDetails = ({
   const [earningsData, setEarningsData] = useState<any>(null);
   const [priceData, setPriceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const { toast } = useToast();
   
   // Get mock data for the current ticker
   const mockDetails = getTickerDetails(ticker);
@@ -30,7 +33,26 @@ export const TickerDetails = ({
       try {
         console.log(`Fetching data for ticker: ${ticker}`);
         
-        // Try alpha vantage first for company overview
+        // Always try to get the most current price first from Finnhub
+        const finnhubQuote = await getQuote(ticker);
+        if (finnhubQuote && finnhubQuote.c) {
+          console.log("Received Finnhub real-time price data:", finnhubQuote);
+          setPriceData({
+            price: finnhubQuote.c,
+            change: finnhubQuote.dp,
+            source: 'finnhub'
+          });
+          setLastUpdated(new Date());
+          
+          // Show notification about price update
+          toast({
+            title: `${ticker} Price Updated`,
+            description: `Latest price: $${finnhubQuote.c.toFixed(2)}`,
+            variant: "default"
+          });
+        }
+        
+        // Try alpha vantage for company overview
         const overview = await getCompanyOverview(ticker);
         if (overview && Object.keys(overview).length > 0 && !overview.Information) {
           console.log("Received Alpha Vantage company data:", overview);
@@ -43,22 +65,26 @@ export const TickerDetails = ({
             setEarningsData(earnings);
           }
         } else {
-          console.log("Invalid company data received from Alpha Vantage, trying Finnhub");
+          console.log("Invalid company data from Alpha Vantage, trying Finnhub");
           
-          // Try Finnhub as fallback
+          // Try Finnhub as fallback for company data
           const finnhubProfile = await getCompanyProfile(ticker);
-          const finnhubQuote = await getQuote(ticker);
           
           if (finnhubProfile && Object.keys(finnhubProfile).length > 0) {
             console.log("Received Finnhub company data:", finnhubProfile);
             setFinnhubData(finnhubProfile);
             
-            if (finnhubQuote) {
-              console.log("Received Finnhub price data:", finnhubQuote);
-              setPriceData({
-                price: finnhubQuote.c,
-                change: finnhubQuote.dp
-              });
+            // If we didn't get price data from Finnhub earlier, try again
+            if (!priceData || !priceData.price) {
+              const retryQuote = await getQuote(ticker);
+              if (retryQuote && retryQuote.c) {
+                setPriceData({
+                  price: retryQuote.c,
+                  change: retryQuote.dp,
+                  source: 'finnhub'
+                });
+                setLastUpdated(new Date());
+              }
             }
           } else {
             console.log("No company data available, falling back to mock data");
@@ -67,22 +93,27 @@ export const TickerDetails = ({
           }
         }
             
-        // Fetch latest price data from Alpha Vantage if needed
-        if (!priceData) {
+        // If still no price data, try Alpha Vantage time series as last resort
+        if (!priceData || !priceData.price) {
           const timeSeriesData = await getDailyTimeSeries(ticker);
           if (timeSeriesData && timeSeriesData["Time Series (Daily)"]) {
             const timeSeriesEntries = Object.entries(timeSeriesData["Time Series (Daily)"]);
             if (timeSeriesEntries.length > 0) {
               // Get the most recent data point
               const latestData = timeSeriesEntries[0][1];
+              const previousData = timeSeriesEntries[1]?.[1];
+              
+              const currentPrice = parseFloat(latestData["4. close"]);
+              const previousPrice = previousData ? parseFloat(previousData["4. close"]) : parseFloat(latestData["1. open"]);
+              
               setPriceData({
-                price: parseFloat(latestData["4. close"]),
-                change: calculatePercentageChange(
-                  parseFloat(latestData["4. close"]),
-                  parseFloat(timeSeriesEntries[1]?.[1]["4. close"] || latestData["1. open"])
-                )
+                price: currentPrice,
+                change: calculatePercentageChange(currentPrice, previousPrice),
+                source: 'alphavantage',
+                date: timeSeriesEntries[0][0]
               });
               console.log("Received Alpha Vantage price data:", latestData);
+              setLastUpdated(new Date());
             }
           }
         }
@@ -276,10 +307,15 @@ export const TickerDetails = ({
               </div>
             )}
             
-            <div className="mt-4 text-xs text-muted-foreground">
-              {companyData ? "Source: Alpha Vantage API" : 
-               finnhubData ? "Source: Finnhub API" : 
-               "Using estimated data"}
+            <div className="mt-4 text-xs text-muted-foreground flex justify-between items-center">
+              <div>
+                {priceData?.source === 'finnhub' ? "Price Source: Finnhub API (Real-time)" : 
+                 priceData?.source === 'alphavantage' ? `Price Source: Alpha Vantage API (${priceData.date})` : 
+                 "Using estimated price data"}
+              </div>
+              <div>
+                Updated: {lastUpdated.toLocaleTimeString()}
+              </div>
             </div>
           </div>
         )}
