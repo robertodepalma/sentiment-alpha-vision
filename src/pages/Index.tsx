@@ -8,7 +8,6 @@ import { TickerDetails } from "@/components/TickerDetails";
 import { PlatformComparison } from "@/components/PlatformComparison";
 import { EmotionHeatmap } from "@/components/EmotionHeatmap";
 import { RecentPostsFeed } from "@/components/RecentPostsFeed";
-import { TickerSearch } from "@/components/TickerSearch";
 import { HypeScore } from "@/components/HypeScore";
 import { getCurrentSentiment } from "@/lib/mockData";
 
@@ -25,13 +24,8 @@ const Index = () => {
       <Header onTickerChange={handleTickerChange} currentTicker={currentTicker} />
       
       <main className="flex-1 container mx-auto py-6 px-4 md:px-6">
-        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Sentiment Dashboard</h2>
-          </div>
-          <div className="md:w-auto">
-            <TickerSearch onSearch={handleTickerChange} />
-          </div>
+        <div className="mb-6">
+          <h2 className="text-3xl font-bold tracking-tight">Sentiment Dashboard</h2>
         </div>
         
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -55,5 +55,6 @@ export const getTickerDetails = (ticker: string = "AAPL"): TickerDetail => {
     }
   };
   
-  return tickers[ticker] || tickers["AAPL"];
+  // Return the ticker-specific data or default to AAPL if not found
+  return tickers[ticker.toUpperCase()] || tickers["AAPL"];
 };

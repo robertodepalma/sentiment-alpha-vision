@@ -14,27 +14,31 @@ export const TickerDetails = ({
   const [companyData, setCompanyData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Fallback to mock data
+  // Get mock data for the current ticker
   const mockDetails = getTickerDetails(ticker);
   
-  // Attempt to fetch real data when ticker changes
+  // Fetch real data when ticker changes
   useEffect(() => {
     const fetchCompanyData = async () => {
       setIsLoading(true);
       try {
         const data = await getCompanyOverview(ticker);
-        if (data && Object.keys(data).length > 0) {
+        if (data && Object.keys(data).length > 0 && !data.Information) {
           setCompanyData(data);
+        } else {
+          // If we get an error response or demo message, use mock data
+          setCompanyData(null);
         }
       } catch (error) {
         console.error("Error fetching company data:", error);
+        setCompanyData(null);
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchCompanyData();
-  }, [ticker]);
+  }, [ticker]); // Re-run effect when ticker changes
   
   // Use real data if available, otherwise fall back to mock data
   const details = companyData ? {
