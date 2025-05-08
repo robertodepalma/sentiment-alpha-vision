@@ -8,7 +8,14 @@ export const Header = () => {
   return (
     <header className="border-b border-border bg-background py-3 px-6 flex items-center justify-between">
       <div className="flex items-center gap-6">
-        <h1 className="text-2xl font-semibold">SentimentAlpha</h1>
+        <div className="flex items-center gap-2">
+          <img 
+            src="/lovable-uploads/fe021022-f2cf-4c88-88cd-44a5e08dac7e.png" 
+            alt="Hype Score Barometer Logo" 
+            className="h-8 w-8"
+          />
+          <h1 className="text-2xl font-semibold">Hype Score Barometer</h1>
+        </div>
         <TickerSearch />
       </div>
       
