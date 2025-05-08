@@ -1,4 +1,3 @@
-
 // Alpha Vantage API integration
 
 // Using the provided API key
@@ -6,6 +5,20 @@ const ALPHA_VANTAGE_API_KEY = "YG8K64TYVLJKRD21";
 
 // Base URL for Alpha Vantage API
 const BASE_URL = "https://www.alphavantage.co/query";
+
+// Mock data for when API limits are reached
+const mockTickers = [
+  { symbol: "AAPL", name: "Apple Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "MSFT", name: "Microsoft Corporation", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "AMZN", name: "Amazon.com Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "GOOGL", name: "Alphabet Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "META", name: "Meta Platforms Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "TSLA", name: "Tesla Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "NVDA", name: "NVIDIA Corporation", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "JPM", name: "JPMorgan Chase & Co", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "V", name: "Visa Inc", type: "Equity", region: "United States", currency: "USD" },
+  { symbol: "JNJ", name: "Johnson & Johnson", type: "Equity", region: "United States", currency: "USD" },
+];
 
 // Search for ticker symbols
 export async function searchTickers(query: string): Promise<{
@@ -29,9 +42,16 @@ export async function searchTickers(query: string): Promise<{
     const data = await response.json();
     
     // Return empty array if no matches or error
-    if (!data.bestMatches) {
+    if (!data.bestMatches || data.bestMatches.length === 0 || data.Note) {
       console.warn("No matches found or API limit reached");
-      return [];
+      
+      // Use mock data filtered by query
+      return mockTickers
+        .filter(ticker => 
+          ticker.symbol.toLowerCase().includes(query.toLowerCase()) || 
+          ticker.name.toLowerCase().includes(query.toLowerCase())
+        )
+        .slice(0, 5);
     }
     
     // Map response to a simpler format
@@ -44,7 +64,14 @@ export async function searchTickers(query: string): Promise<{
     }));
   } catch (error) {
     console.error("Error searching for tickers:", error);
-    return [];
+    
+    // Use mock data filtered by query on error
+    return mockTickers
+      .filter(ticker => 
+        ticker.symbol.toLowerCase().includes(query.toLowerCase()) || 
+        ticker.name.toLowerCase().includes(query.toLowerCase())
+      )
+      .slice(0, 5);
   }
 }
 

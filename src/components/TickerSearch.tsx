@@ -24,6 +24,7 @@ export const TickerSearch = ({
   const [ticker, setTicker] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<TickerSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
 
   // Update local state when initialValue changes
@@ -37,6 +38,7 @@ export const TickerSearch = ({
     if (ticker.trim()) {
       onSearch(ticker.toUpperCase());
       setSuggestions([]);
+      setShowSuggestions(false);
     }
   };
 
@@ -45,6 +47,7 @@ export const TickerSearch = ({
     const fetchSuggestions = async () => {
       if (ticker.trim().length < 2) {
         setSuggestions([]);
+        setShowSuggestions(false);
         return;
       }
 
@@ -59,6 +62,7 @@ export const TickerSearch = ({
         }));
         
         setSuggestions(mappedResults);
+        setShowSuggestions(mappedResults.length > 0);
       } catch (error) {
         console.error("Error fetching ticker suggestions:", error);
         toast({
@@ -70,9 +74,10 @@ export const TickerSearch = ({
         // Fallback to popular tickers
         const popularTickers = ["AAPL", "MSFT", "AMZN", "TSLA", "GOOGL", "META", "NVDA"];
         const filteredTickers = popularTickers
-          .filter(t => t.startsWith(ticker.toUpperCase()))
+          .filter(t => t.toUpperCase().includes(ticker.toUpperCase()))
           .map(t => ({ symbol: t, name: t }));
         setSuggestions(filteredTickers);
+        setShowSuggestions(filteredTickers.length > 0);
       } finally {
         setIsLoading(false);
       }
@@ -91,6 +96,7 @@ export const TickerSearch = ({
     setTicker(suggestion.symbol);
     onSearch(suggestion.symbol);
     setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   return (
@@ -104,6 +110,11 @@ export const TickerSearch = ({
           className="rounded-r-none border-r-0"
           onKeyDown={(e) => {
             if (e.key === "Enter") handleSearch();
+          }}
+          onFocus={() => setShowSuggestions(suggestions.length > 0)}
+          onBlur={() => {
+            // Delay hiding suggestions to allow for clicks
+            setTimeout(() => setShowSuggestions(false), 200);
           }}
         />
         <Button 
@@ -122,7 +133,7 @@ export const TickerSearch = ({
         </div>
       )}
       
-      {!isLoading && suggestions.length > 0 && (
+      {!isLoading && showSuggestions && suggestions.length > 0 && (
         <div className="absolute w-full mt-1 bg-background border rounded-md shadow-md z-50">
           {suggestions.map((suggestion) => (
             <div
