@@ -9,6 +9,7 @@ import { PlatformComparison } from "@/components/PlatformComparison";
 import { EmotionHeatmap } from "@/components/EmotionHeatmap";
 import { RecentPostsFeed } from "@/components/RecentPostsFeed";
 import { HypeScore } from "@/components/HypeScore";
+import { NewsSection } from "@/components/NewsSection";
 import { getCurrentSentiment } from "@/lib/mockData";
 
 const Index = () => {
@@ -37,6 +38,9 @@ const Index = () => {
           </div>
           <div className="lg:col-span-1">
             <HypeScore ticker={currentTicker} />
+          </div>
+          <div className="md:col-span-2 lg:col-span-3">
+            <NewsSection ticker={currentTicker} />
           </div>
           <div className="md:col-span-2 lg:col-span-3">
             <SentimentChart ticker={currentTicker} />
