@@ -27,8 +27,8 @@ export const EmotionHeatmap = ({ ticker = "AAPL" }: { ticker?: string }) => {
           <div className="flex items-center text-xs">
             <span className="mr-1 text-muted-foreground">Intensity:</span>
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 bg-gray-200 rounded-sm"></div>
-              <span className="mr-1">Low</span>
+              <div className="w-3 h-3 bg-secondary rounded-sm"></div>
+              <span className="mr-1 text-muted-foreground">Low</span>
             </div>
             <div className="flex items-center gap-1 ml-2">
               <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
@@ -44,11 +44,13 @@ export const EmotionHeatmap = ({ ticker = "AAPL" }: { ticker?: string }) => {
 const EmotionCell = ({ emotion }: { emotion: { emotion: string; score: number } }) => {
   // Calculate background color intensity based on score
   const intensity = Math.round(emotion.score * 100);
-  const bgColor = `rgba(59, 130, 246, ${emotion.score * 0.8 + 0.1})`; // Use blue with varying opacity
+  
+  // Use blue with varying opacity for dark theme
+  const bgColor = `rgba(59, 130, 246, ${emotion.score * 0.8 + 0.1})`; 
   
   return (
     <div 
-      className="border rounded-md p-3 flex flex-col items-center justify-center text-center transition-all hover:shadow-md cursor-help"
+      className="border border-border rounded-md p-3 flex flex-col items-center justify-center text-center transition-all hover:shadow-md cursor-help"
       style={{ backgroundColor: bgColor }}
     >
       <div className="font-medium text-sm text-white">{emotion.emotion}</div>

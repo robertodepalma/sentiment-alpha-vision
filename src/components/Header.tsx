@@ -6,7 +6,7 @@ import { TickerSearch } from "./TickerSearch";
 
 export const Header = () => {
   return (
-    <header className="border-b bg-card py-3 px-6 flex items-center justify-between">
+    <header className="border-b border-border bg-background py-3 px-6 flex items-center justify-between">
       <div className="flex items-center gap-6">
         <h1 className="text-2xl font-semibold">SentimentAlpha</h1>
         <TickerSearch />
