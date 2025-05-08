@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export const TickerSearch = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { toast } = useToast();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Update local state when initialValue changes
   useEffect(() => {
@@ -33,6 +34,18 @@ export const TickerSearch = ({
       setTicker(initialValue);
     }
   }, [initialValue]);
+
+  // Handle clicks outside the dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSearch = () => {
     if (ticker.trim()) {
@@ -100,7 +113,7 @@ export const TickerSearch = ({
   };
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative", className)} ref={dropdownRef}>
       <div className="flex w-80">
         <Input
           type="text"
@@ -111,10 +124,10 @@ export const TickerSearch = ({
           onKeyDown={(e) => {
             if (e.key === "Enter") handleSearch();
           }}
-          onFocus={() => setShowSuggestions(suggestions.length > 0)}
-          onBlur={() => {
-            // Delay hiding suggestions to allow for clicks
-            setTimeout(() => setShowSuggestions(false), 200);
+          onFocus={() => {
+            if (suggestions.length > 0) {
+              setShowSuggestions(true);
+            }
           }}
         />
         <Button 
@@ -134,7 +147,7 @@ export const TickerSearch = ({
       )}
       
       {!isLoading && showSuggestions && suggestions.length > 0 && (
-        <div className="absolute w-full mt-1 bg-background border rounded-md shadow-md z-50">
+        <div className="absolute w-full mt-1 bg-background border rounded-md shadow-md z-50 max-h-60 overflow-y-auto">
           {suggestions.map((suggestion) => (
             <div
               key={suggestion.symbol}
