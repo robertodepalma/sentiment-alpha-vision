@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,16 @@ export const TickerSearch = ({
       onSearch(ticker.toUpperCase());
       setSuggestions([]);
       setShowSuggestions(false);
+    }
+  };
+  
+  // Function to clear the search input - fixed to take no arguments
+  const handleClearSearch = () => {
+    setTicker("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+    if (inputRef.current) {
+      inputRef.current.focus();
     }
   };
 
@@ -146,6 +156,15 @@ export const TickerSearch = ({
           }}
           ref={inputRef}
         />
+        {ticker && (
+          <Button 
+            variant="ghost" 
+            className="px-2 rounded-none border-y border-r-0" 
+            onClick={handleClearSearch}
+          >
+            <X size={16} />
+          </Button>
+        )}
         <Button 
           onClick={handleSearch} 
           className="rounded-l-none"
