@@ -1,8 +1,7 @@
-
 // Alpha Vantage API integration
 
 // Using the provided API key
-const ALPHA_VANTAGE_API_KEY = "YG8K64TYVLJKRD21"; 
+const ALPHA_VANTAGE_API_KEY = "A2HMIC25UU23ZN2B"; 
 
 // Base URL for Alpha Vantage API
 const BASE_URL = "https://www.alphavantage.co/query";

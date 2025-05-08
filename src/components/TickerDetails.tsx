@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, ChartLine, Database, TrendingDown, TrendingUp } from "lucide-react";
@@ -24,11 +23,15 @@ export const TickerDetails = ({
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        console.log(`Fetching data for ticker: ${ticker} with new API key`);
+        
         // Fetch company overview
         const overview = await getCompanyOverview(ticker);
         if (overview && Object.keys(overview).length > 0 && !overview.Information) {
+          console.log("Received company data:", overview);
           setCompanyData(overview);
         } else {
+          console.log("Invalid company data received, falling back to mock data");
           setCompanyData(null);
         }
         
@@ -46,11 +49,16 @@ export const TickerDetails = ({
                 parseFloat(timeSeriesEntries[1]?.[1]["4. close"] || latestData["1. open"])
               )
             });
+            console.log("Received price data:", latestData);
           }
+        } else {
+          console.log("Invalid price data received, falling back to mock data");
+          setPriceData(null);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
         setCompanyData(null);
+        setPriceData(null);
       } finally {
         setIsLoading(false);
       }
