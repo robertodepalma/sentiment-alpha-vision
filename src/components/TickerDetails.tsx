@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, ChartLine, Database, TrendingDown, TrendingUp } from "lucide-react";
 import { SentimentScore, TickerDetail } from "@/lib/types";
-import { getCompanyOverview, getDailyTimeSeries, getCompanyEarnings } from "@/lib/api/alphaVantage";
 import { getQuote, getCompanyProfile } from "@/lib/api/finnhub";
 import { getTickerDetails } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
@@ -15,9 +14,7 @@ export const TickerDetails = ({
   ticker?: string;
   sentiment?: SentimentScore;
 }) => {
-  const [companyData, setCompanyData] = useState<any>(null);
   const [finnhubData, setFinnhubData] = useState<any>(null);
-  const [earningsData, setEarningsData] = useState<any>(null);
   const [priceData, setPriceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -33,7 +30,7 @@ export const TickerDetails = ({
       try {
         console.log(`Fetching data for ticker: ${ticker}`);
         
-        // Always try to get the most current price first from Finnhub
+        // Get real-time price from Finnhub
         const finnhubQuote = await getQuote(ticker);
         if (finnhubQuote && finnhubQuote.c) {
           console.log("Received Finnhub real-time price data:", finnhubQuote);
@@ -52,74 +49,31 @@ export const TickerDetails = ({
           });
         }
         
-        // Try alpha vantage for company overview
-        const overview = await getCompanyOverview(ticker);
-        if (overview && Object.keys(overview).length > 0 && !overview.Information) {
-          console.log("Received Alpha Vantage company data:", overview);
-          setCompanyData(overview);
+        // Try Finnhub for company data
+        const finnhubProfile = await getCompanyProfile(ticker);
+        
+        if (finnhubProfile && Object.keys(finnhubProfile).length > 0) {
+          console.log("Received Finnhub company data:", finnhubProfile);
+          setFinnhubData(finnhubProfile);
           
-          // Try to get earnings data
-          const earnings = await getCompanyEarnings(ticker);
-          if (earnings && earnings.quarterlyEarnings) {
-            console.log("Received Alpha Vantage earnings data:", earnings);
-            setEarningsData(earnings);
-          }
-        } else {
-          console.log("Invalid company data from Alpha Vantage, trying Finnhub");
-          
-          // Try Finnhub as fallback for company data
-          const finnhubProfile = await getCompanyProfile(ticker);
-          
-          if (finnhubProfile && Object.keys(finnhubProfile).length > 0) {
-            console.log("Received Finnhub company data:", finnhubProfile);
-            setFinnhubData(finnhubProfile);
-            
-            // If we didn't get price data from Finnhub earlier, try again
-            if (!priceData || !priceData.price) {
-              const retryQuote = await getQuote(ticker);
-              if (retryQuote && retryQuote.c) {
-                setPriceData({
-                  price: retryQuote.c,
-                  change: retryQuote.dp,
-                  source: 'finnhub'
-                });
-                setLastUpdated(new Date());
-              }
-            }
-          } else {
-            console.log("No company data available, falling back to mock data");
-            setCompanyData(null);
-            setFinnhubData(null);
-          }
-        }
-            
-        // If still no price data, try Alpha Vantage time series as last resort
-        if (!priceData || !priceData.price) {
-          const timeSeriesData = await getDailyTimeSeries(ticker);
-          if (timeSeriesData && timeSeriesData["Time Series (Daily)"]) {
-            const timeSeriesEntries = Object.entries(timeSeriesData["Time Series (Daily)"]);
-            if (timeSeriesEntries.length > 0) {
-              // Get the most recent data point
-              const latestData = timeSeriesEntries[0][1];
-              const previousData = timeSeriesEntries[1]?.[1];
-              
-              const currentPrice = parseFloat(latestData["4. close"]);
-              const previousPrice = previousData ? parseFloat(previousData["4. close"]) : parseFloat(latestData["1. open"]);
-              
+          // If we didn't get price data from Finnhub earlier, try again
+          if (!priceData || !priceData.price) {
+            const retryQuote = await getQuote(ticker);
+            if (retryQuote && retryQuote.c) {
               setPriceData({
-                price: currentPrice,
-                change: calculatePercentageChange(currentPrice, previousPrice),
-                source: 'alphavantage',
-                date: timeSeriesEntries[0][0]
+                price: retryQuote.c,
+                change: retryQuote.dp,
+                source: 'finnhub'
               });
-              console.log("Received Alpha Vantage price data:", latestData);
               setLastUpdated(new Date());
             }
           }
+        } else {
+          console.log("No company data available, falling back to mock data");
+          setFinnhubData(null);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        setCompanyData(null);
         setFinnhubData(null);
         setPriceData(null);
       } finally {
@@ -143,27 +97,8 @@ export const TickerDetails = ({
   // Use company data based on available sources
   let details;
   
-  if (companyData) {
-    // Prefer Alpha Vantage data if available
-    details = {
-      ticker: companyData.Symbol || mockDetails.ticker,
-      name: companyData.Name || mockDetails.name,
-      sector: companyData.Sector || mockDetails.sector,
-      industry: companyData.Industry || 'N/A',
-      ceo: companyData.CEO || mockDetails.ceo,
-      employees: companyData.FullTimeEmployees || 'N/A',
-      headquarters: `${companyData.Address || ''}, ${companyData.City || ''}, ${companyData.Country || ''}` || mockDetails.headquarters,
-      marketCap: companyData.MarketCapitalization ? 
-        (parseInt(companyData.MarketCapitalization) >= 1000000000 ? 
-          `$${(parseInt(companyData.MarketCapitalization) / 1000000000).toFixed(2)}B` : 
-          `$${(parseInt(companyData.MarketCapitalization) / 1000000).toFixed(2)}M`) : 
-        mockDetails.marketCap,
-      peRatio: companyData.PERatio || 'N/A',
-      dividendYield: companyData.DividendYield ? `${(parseFloat(companyData.DividendYield) * 100).toFixed(2)}%` : 'N/A',
-      analystRating: companyData.AnalystRating || 'Buy'
-    };
-  } else if (finnhubData) {
-    // Fallback to Finnhub data
+  if (finnhubData) {
+    // Use Finnhub data
     details = {
       ticker: finnhubData.ticker || mockDetails.ticker,
       name: finnhubData.name || mockDetails.name,
@@ -182,7 +117,7 @@ export const TickerDetails = ({
       analystRating: 'N/A'
     };
   } else {
-    // Mock data as last resort
+    // Mock data as fallback
     details = {
       ...mockDetails,
       industry: 'N/A',
@@ -191,9 +126,6 @@ export const TickerDetails = ({
       dividendYield: 'N/A'
     };
   }
-  
-  // Get the latest quarterly earnings
-  const latestEarnings = earningsData?.quarterlyEarnings?.[0];
   
   return (
     <Card className="w-full">
@@ -284,33 +216,9 @@ export const TickerDetails = ({
               </div>
             </div>
             
-            {latestEarnings && (
-              <div className="mt-4 border-t pt-3">
-                <div className="text-sm text-muted-foreground mb-1">Latest Quarterly Earnings</div>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <div className="text-xs text-muted-foreground">Date</div>
-                    <div>{latestEarnings.reportedDate}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">EPS</div>
-                    <div className={parseFloat(latestEarnings.reportedEPS) >= parseFloat(latestEarnings.estimatedEPS) 
-                      ? "text-green-600" : "text-red-600"}>
-                      ${latestEarnings.reportedEPS}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Est. EPS</div>
-                    <div>${latestEarnings.estimatedEPS}</div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             <div className="mt-4 text-xs text-muted-foreground flex justify-between items-center">
               <div>
                 {priceData?.source === 'finnhub' ? "Price Source: Finnhub API (Real-time)" : 
-                 priceData?.source === 'alphavantage' ? `Price Source: Alpha Vantage API (${priceData.date})` : 
                  "Using estimated price data"}
               </div>
               <div>

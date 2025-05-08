@@ -18,16 +18,6 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { getDailyTimeSeries, formatTimeSeriesForChart } from "@/lib/api/alphaVantage";
-
-type TimeRange = "1D" | "1W" | "1M" | "3M" | "1Y";
-type Indicator = "sma" | "ema" | "rsi" | "macd" | "bb";
-
-interface IndicatorConfig {
-  name: string;
-  color: string;
-  visible: boolean;
-}
 
 // Generate mock stock price data
 const generateStockData = (ticker: string, days: number) => {
@@ -97,32 +87,6 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
     bb: { name: "Bollinger", color: "hsl(var(--chart-red))", visible: false }
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [realData, setRealData] = useState<any[]>([]);
-  const [useRealData, setUseRealData] = useState(false);
-  
-  // Fetch real data from Alpha Vantage
-  useEffect(() => {
-    const fetchStockData = async () => {
-      setIsLoading(true);
-      try {
-        const data = await getDailyTimeSeries(ticker);
-        if (data && data["Time Series (Daily)"]) {
-          const formattedData = formatTimeSeriesForChart(data);
-          setRealData(formattedData);
-          setUseRealData(true);
-        } else {
-          setUseRealData(false);
-        }
-      } catch (error) {
-        console.error("Error fetching stock data:", error);
-        setUseRealData(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchStockData();
-  }, [ticker]);
   
   // Get data based on time range
   const getDays = (): number => {
@@ -136,14 +100,18 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
     }
   };
   
-  // Use real data if available, otherwise fallback to mock data
-  const mockStockData = generateStockData(ticker, getDays());
+  // Generate stock data based on ticker and time range
+  const stockData = generateStockData(ticker, getDays());
   
-  // Filter real data based on timeRange
-  const filteredRealData = realData.slice(-getDays());
-  
-  // Final data to use for charts
-  const stockData = useRealData ? filteredRealData : mockStockData;
+  useEffect(() => {
+    // Simulate loading
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [ticker, timeRange]);
   
   // Toggle indicator visibility
   const toggleIndicator = (indicator: Indicator) => {
@@ -164,7 +132,7 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
             <CardTitle className="text-xl">{ticker} Technical Analysis</CardTitle>
             <CardDescription>
               Price data and technical indicators
-              {!useRealData && <span className="text-xs ml-2 text-muted-foreground">(Using simulated data)</span>}
+              <span className="text-xs ml-2 text-muted-foreground">(Using simulated data)</span>
             </CardDescription>
           </div>
           <ToggleGroup type="single" value={timeRange} onValueChange={(val) => val && setTimeRange(val as TimeRange)}>
@@ -353,9 +321,7 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
         
         <div className="mt-4 flex justify-between text-xs text-muted-foreground">
           <div>
-            {useRealData 
-              ? "Source: Alpha Vantage API"
-              : "Note: This chart shows simulated data for demonstration purposes."}
+            Note: This chart shows simulated data for demonstration purposes.
           </div>
           <div>
             Last updated: {new Date().toLocaleTimeString()}
@@ -365,3 +331,13 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
     </Card>
   );
 };
+
+// TypeScript types
+type TimeRange = "1D" | "1W" | "1M" | "3M" | "1Y";
+type Indicator = "sma" | "ema" | "rsi" | "macd" | "bb";
+
+interface IndicatorConfig {
+  name: string;
+  color: string;
+  visible: boolean;
+}
