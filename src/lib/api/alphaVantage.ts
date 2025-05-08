@@ -6,6 +6,8 @@ export {
   searchTickers,
   getCompanyOverview,
   getDailyTimeSeries,
+  getCompanyEarnings,
+  getMarketStatus,
   formatTimeSeriesForChart,
   ALPHA_VANTAGE_API_KEY,
   BASE_URL,

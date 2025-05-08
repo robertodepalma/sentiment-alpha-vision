@@ -51,4 +51,9 @@ export type TickerDetail = {
   currentPrice: number;
   priceChange: number;
   marketCap: string;
+  industry?: string;
+  employees?: string | number;
+  peRatio?: string | number;
+  dividendYield?: string;
+  analystRating?: string;
 };

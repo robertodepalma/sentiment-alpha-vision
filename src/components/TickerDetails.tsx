@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, ChartLine, Database, TrendingDown, TrendingUp } from "lucide-react";
-import { SentimentScore, TickerDetail, getTickerDetails } from "@/lib/mockData";
-import { getCompanyOverview, getDailyTimeSeries } from "@/lib/api/alphaVantage";
+import { SentimentScore, TickerDetail } from "@/lib/types";
+import { getCompanyOverview, getDailyTimeSeries, getCompanyEarnings } from "@/lib/api/alphaVantage";
 import { getQuote, getCompanyProfile } from "@/lib/api/finnhub";
+import { getTickerDetails } from "@/lib/mockData";
 
 export const TickerDetails = ({ 
   ticker = "AAPL", 
@@ -14,6 +16,7 @@ export const TickerDetails = ({
 }) => {
   const [companyData, setCompanyData] = useState<any>(null);
   const [finnhubData, setFinnhubData] = useState<any>(null);
+  const [earningsData, setEarningsData] = useState<any>(null);
   const [priceData, setPriceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -27,36 +30,45 @@ export const TickerDetails = ({
       try {
         console.log(`Fetching data for ticker: ${ticker}`);
         
-        // Try Finnhub first
-        const finnhubQuote = await getQuote(ticker);
-        const finnhubProfile = await getCompanyProfile(ticker);
-        
-        if (finnhubProfile && Object.keys(finnhubProfile).length > 0) {
-          console.log("Received Finnhub company data:", finnhubProfile);
-          setFinnhubData(finnhubProfile);
+        // Try alpha vantage first for company overview
+        const overview = await getCompanyOverview(ticker);
+        if (overview && Object.keys(overview).length > 0 && !overview.Information) {
+          console.log("Received Alpha Vantage company data:", overview);
+          setCompanyData(overview);
           
-          if (finnhubQuote) {
-            console.log("Received Finnhub price data:", finnhubQuote);
-            setPriceData({
-              price: finnhubQuote.c,
-              change: finnhubQuote.dp
-            });
+          // Try to get earnings data
+          const earnings = await getCompanyEarnings(ticker);
+          if (earnings && earnings.quarterlyEarnings) {
+            console.log("Received Alpha Vantage earnings data:", earnings);
+            setEarningsData(earnings);
           }
         } else {
-          // Fallback to Alpha Vantage if Finnhub fails
-          console.log("Finnhub data unavailable, trying Alpha Vantage");
+          console.log("Invalid company data received from Alpha Vantage, trying Finnhub");
           
-          // Fetch company overview
-          const overview = await getCompanyOverview(ticker);
-          if (overview && Object.keys(overview).length > 0 && !overview.Information) {
-            console.log("Received Alpha Vantage company data:", overview);
-            setCompanyData(overview);
+          // Try Finnhub as fallback
+          const finnhubProfile = await getCompanyProfile(ticker);
+          const finnhubQuote = await getQuote(ticker);
+          
+          if (finnhubProfile && Object.keys(finnhubProfile).length > 0) {
+            console.log("Received Finnhub company data:", finnhubProfile);
+            setFinnhubData(finnhubProfile);
+            
+            if (finnhubQuote) {
+              console.log("Received Finnhub price data:", finnhubQuote);
+              setPriceData({
+                price: finnhubQuote.c,
+                change: finnhubQuote.dp
+              });
+            }
           } else {
-            console.log("Invalid company data received, falling back to mock data");
+            console.log("No company data available, falling back to mock data");
             setCompanyData(null);
+            setFinnhubData(null);
           }
-          
-          // Fetch latest price data
+        }
+            
+        // Fetch latest price data from Alpha Vantage if needed
+        if (!priceData) {
           const timeSeriesData = await getDailyTimeSeries(ticker);
           if (timeSeriesData && timeSeriesData["Time Series (Daily)"]) {
             const timeSeriesEntries = Object.entries(timeSeriesData["Time Series (Daily)"]);
@@ -72,9 +84,6 @@ export const TickerDetails = ({
               });
               console.log("Received Alpha Vantage price data:", latestData);
             }
-          } else {
-            console.log("Invalid price data received, falling back to mock data");
-            setPriceData(null);
           }
         }
       } catch (error) {
@@ -103,35 +112,57 @@ export const TickerDetails = ({
   // Use company data based on available sources
   let details;
   
-  if (finnhubData) {
-    details = {
-      ticker: finnhubData.ticker || mockDetails.ticker,
-      name: finnhubData.name || mockDetails.name,
-      sector: finnhubData.finnhubIndustry || mockDetails.sector,
-      ceo: "N/A", // Finnhub doesn't provide CEO information
-      headquarters: `${finnhubData.country || ""}` || mockDetails.headquarters,
-      marketCap: finnhubData.marketCapitalization ? 
-        (finnhubData.marketCapitalization >= 1000 ? 
-          `$${(finnhubData.marketCapitalization / 1000).toFixed(2)}B` : 
-          `$${finnhubData.marketCapitalization.toFixed(2)}M`) : 
-        mockDetails.marketCap
-    };
-  } else if (companyData) {
+  if (companyData) {
+    // Prefer Alpha Vantage data if available
     details = {
       ticker: companyData.Symbol || mockDetails.ticker,
       name: companyData.Name || mockDetails.name,
       sector: companyData.Sector || mockDetails.sector,
+      industry: companyData.Industry || 'N/A',
       ceo: companyData.CEO || mockDetails.ceo,
+      employees: companyData.FullTimeEmployees || 'N/A',
       headquarters: `${companyData.Address || ''}, ${companyData.City || ''}, ${companyData.Country || ''}` || mockDetails.headquarters,
       marketCap: companyData.MarketCapitalization ? 
         (parseInt(companyData.MarketCapitalization) >= 1000000000 ? 
           `$${(parseInt(companyData.MarketCapitalization) / 1000000000).toFixed(2)}B` : 
           `$${(parseInt(companyData.MarketCapitalization) / 1000000).toFixed(2)}M`) : 
-        mockDetails.marketCap
+        mockDetails.marketCap,
+      peRatio: companyData.PERatio || 'N/A',
+      dividendYield: companyData.DividendYield ? `${(parseFloat(companyData.DividendYield) * 100).toFixed(2)}%` : 'N/A',
+      analystRating: companyData.AnalystRating || 'Buy'
+    };
+  } else if (finnhubData) {
+    // Fallback to Finnhub data
+    details = {
+      ticker: finnhubData.ticker || mockDetails.ticker,
+      name: finnhubData.name || mockDetails.name,
+      sector: finnhubData.finnhubIndustry || mockDetails.sector,
+      industry: finnhubData.finnhubIndustry || 'N/A',
+      ceo: "N/A", // Finnhub doesn't provide CEO information
+      employees: finnhubData.employeeTotal?.toString() || 'N/A',
+      headquarters: `${finnhubData.country || ""}` || mockDetails.headquarters,
+      marketCap: finnhubData.marketCapitalization ? 
+        (finnhubData.marketCapitalization >= 1000 ? 
+          `$${(finnhubData.marketCapitalization / 1000).toFixed(2)}B` : 
+          `$${finnhubData.marketCapitalization.toFixed(2)}M`) : 
+        mockDetails.marketCap,
+      peRatio: finnhubData.peRatio?.toString() || 'N/A',
+      dividendYield: finnhubData.dividendYield ? `${finnhubData.dividendYield.toFixed(2)}%` : 'N/A',
+      analystRating: 'N/A'
     };
   } else {
-    details = mockDetails;
+    // Mock data as last resort
+    details = {
+      ...mockDetails,
+      industry: 'N/A',
+      employees: 'N/A',
+      peRatio: 'N/A',
+      dividendYield: 'N/A'
+    };
   }
+  
+  // Get the latest quarterly earnings
+  const latestEarnings = earningsData?.quarterlyEarnings?.[0];
   
   return (
     <Card className="w-full">
@@ -176,6 +207,10 @@ export const TickerDetails = ({
                     <span className="font-medium">{details.sector}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span>Industry</span>
+                    <span className="font-medium">{details.industry}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span>CEO</span>
                     <span className="font-medium">{details.ceo}</span>
                   </div>
@@ -183,6 +218,16 @@ export const TickerDetails = ({
                     <span>Headquarters</span>
                     <span className="font-medium">{details.headquarters}</span>
                   </div>
+                  {details.employees !== 'N/A' && (
+                    <div className="flex justify-between">
+                      <span>Employees</span>
+                      <span className="font-medium">
+                        {typeof details.employees === 'number' 
+                          ? details.employees.toLocaleString() 
+                          : details.employees}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
@@ -190,18 +235,51 @@ export const TickerDetails = ({
                 <div className="flex flex-col gap-2">
                   <IndicatorItem 
                     icon={<ChartLine size={14} />}
-                    label="Analyst Rating" 
-                    value={finnhubData?.analystRating || companyData?.AnalystRating || "Buy"} 
-                    trend="up" 
+                    label="P/E Ratio" 
+                    value={details.peRatio} 
                   />
                   <IndicatorItem 
                     icon={<Database size={14} />}
-                    label="Sentiment Score" 
+                    label="Dividend Yield" 
+                    value={details.dividendYield} 
+                  />
+                  <IndicatorItem 
+                    icon={<ChartLine size={14} />}
+                    label="Sentiment" 
                     value={sentiment?.score.toFixed(2) || "0.00"} 
                     trend={getSentimentTrend(sentiment?.score)} 
                   />
                 </div>
               </div>
+            </div>
+            
+            {latestEarnings && (
+              <div className="mt-4 border-t pt-3">
+                <div className="text-sm text-muted-foreground mb-1">Latest Quarterly Earnings</div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Date</div>
+                    <div>{latestEarnings.reportedDate}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">EPS</div>
+                    <div className={parseFloat(latestEarnings.reportedEPS) >= parseFloat(latestEarnings.estimatedEPS) 
+                      ? "text-green-600" : "text-red-600"}>
+                      ${latestEarnings.reportedEPS}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Est. EPS</div>
+                    <div>${latestEarnings.estimatedEPS}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="mt-4 text-xs text-muted-foreground">
+              {companyData ? "Source: Alpha Vantage API" : 
+               finnhubData ? "Source: Finnhub API" : 
+               "Using estimated data"}
             </div>
           </div>
         )}
@@ -218,7 +296,7 @@ const IndicatorItem = ({
 }: { 
   icon: React.ReactNode;
   label: string; 
-  value: string; 
+  value: string | number; 
   trend?: "up" | "down" | "neutral"; 
 }) => {
   let trendColors = "text-gray-500";

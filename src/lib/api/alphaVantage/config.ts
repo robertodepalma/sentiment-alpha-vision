@@ -2,7 +2,7 @@
 // Configuration for Alpha Vantage API
 
 // API key for Alpha Vantage
-export const ALPHA_VANTAGE_API_KEY = "A2HMIC25UU23ZN2B";
+export const ALPHA_VANTAGE_API_KEY = "OOMEFL86TPY61NO5";
 
 // Base URL for Alpha Vantage API
 export const BASE_URL = "https://www.alphavantage.co/query";
