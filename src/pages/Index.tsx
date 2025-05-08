@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import { SentimentOverview } from "@/components/SentimentOverview";
 import { SentimentChart } from "@/components/SentimentChart";
+import { TechnicalAnalysisChart } from "@/components/TechnicalAnalysisChart";
 import { TickerDetails } from "@/components/TickerDetails";
 import { PlatformComparison } from "@/components/PlatformComparison";
 import { EmotionHeatmap } from "@/components/EmotionHeatmap";
@@ -48,6 +49,9 @@ const Index = () => {
           </div>
           <div className="md:col-span-2 lg:col-span-3">
             <SentimentChart ticker={currentTicker} />
+          </div>
+          <div className="md:col-span-2 lg:col-span-3">
+            <TechnicalAnalysisChart ticker={currentTicker} />
           </div>
           <div className="lg:col-span-2">
             <PlatformComparison ticker={currentTicker} />
