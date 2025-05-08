@@ -84,7 +84,7 @@ export function useTickerSearch(initialValue: string = "") {
     setShowSuggestions(false);
   };
 
-  // Fixed: Changed the signature to accept a boolean parameter
+  // Fix: Make sure this function accepts a boolean parameter to match usage in other components
   const toggleSuggestions = (show: boolean) => {
     setShowSuggestions(show);
   };
