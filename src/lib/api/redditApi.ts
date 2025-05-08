@@ -1,5 +1,5 @@
 
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 // Reddit API credentials
 const REDDIT_CLIENT_ID = "g6ATk7xTepd4jLXQCAGxtA";
