@@ -1,11 +1,16 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ArrowDown, ArrowUp, ChartLine, Database, TrendingDown, TrendingUp } from "lucide-react";
-import { SentimentScore, TickerDetail } from "@/lib/types";
+import { SentimentScore } from "@/lib/types";
 import { getQuote, getCompanyProfile } from "@/lib/api/finnhub";
 import { getTickerDetails } from "@/lib/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { TickerHeader } from "./ticker-details/TickerHeader";
+import { PriceDisplay } from "./ticker-details/PriceDisplay";
+import { CompanyDetails } from "./ticker-details/CompanyDetails";
+import { KeyIndicators } from "./ticker-details/KeyIndicators";
+import { DataSourceInfo } from "./ticker-details/DataSourceInfo";
+import { LoadingSpinner } from "./ticker-details/LoadingSpinner";
 
 export const TickerDetails = ({ 
   ticker = "AAPL", 
@@ -84,12 +89,6 @@ export const TickerDetails = ({
     fetchData();
   }, [ticker]); // Re-run effect when ticker changes
   
-  // Calculate percentage change
-  const calculatePercentageChange = (current: number, previous: number): number => {
-    if (!previous) return 0;
-    return ((current - previous) / previous) * 100;
-  };
-  
   // Use real price data if available, otherwise fall back to mock data
   const currentPrice = priceData?.price || mockDetails.currentPrice;
   const priceChange = priceData?.change || mockDetails.priceChange;
@@ -130,149 +129,41 @@ export const TickerDetails = ({
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-lg font-bold">{details.ticker}</h3>
-            <span className="text-muted-foreground">{details.name}</span>
-          </div>
-          <div className={`flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-            priceChange > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-          }`}>
-            {priceChange > 0 ? <TrendingUp className="mr-1" size={12} /> : <TrendingDown className="mr-1" size={12} />}
-            {priceChange > 0 ? "+" : ""}{priceChange.toFixed(2)}%
-          </div>
-        </div>
+        <TickerHeader 
+          ticker={details.ticker} 
+          name={details.name} 
+          priceChange={priceChange} 
+        />
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-          </div>
+          <LoadingSpinner />
         ) : (
           <div>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Current Price</div>
-                <div className="text-xl font-bold">${currentPrice.toFixed(2)}</div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Market Cap</div>
-                <div className="text-xl font-bold">{details.marketCap}</div>
-              </div>
-            </div>
+            <PriceDisplay currentPrice={currentPrice} marketCap={details.marketCap} />
             
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Company Details</div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Sector</span>
-                    <span className="font-medium">{details.sector}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Industry</span>
-                    <span className="font-medium">{details.industry}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>CEO</span>
-                    <span className="font-medium">{details.ceo}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Headquarters</span>
-                    <span className="font-medium">{details.headquarters}</span>
-                  </div>
-                  {details.employees !== 'N/A' && (
-                    <div className="flex justify-between">
-                      <span>Employees</span>
-                      <span className="font-medium">
-                        {typeof details.employees === 'number' 
-                          ? details.employees.toLocaleString() 
-                          : details.employees}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Key Indicators</div>
-                <div className="flex flex-col gap-2">
-                  <IndicatorItem 
-                    icon={<ChartLine size={14} />}
-                    label="P/E Ratio" 
-                    value={details.peRatio} 
-                  />
-                  <IndicatorItem 
-                    icon={<Database size={14} />}
-                    label="Dividend Yield" 
-                    value={details.dividendYield} 
-                  />
-                  <IndicatorItem 
-                    icon={<ChartLine size={14} />}
-                    label="Sentiment" 
-                    value={sentiment?.score.toFixed(2) || "0.00"} 
-                    trend={getSentimentTrend(sentiment?.score)} 
-                  />
-                </div>
-              </div>
+              <CompanyDetails 
+                sector={details.sector}
+                industry={details.industry}
+                ceo={details.ceo}
+                headquarters={details.headquarters}
+                employees={details.employees}
+              />
+              <KeyIndicators 
+                peRatio={details.peRatio}
+                dividendYield={details.dividendYield}
+                sentiment={sentiment}
+              />
             </div>
             
-            <div className="mt-4 text-xs text-muted-foreground flex justify-between items-center">
-              <div>
-                {priceData?.source === 'finnhub' ? "Price Source: Finnhub API (Real-time)" : 
-                 "Using estimated price data"}
-              </div>
-              <div>
-                Updated: {lastUpdated.toLocaleTimeString()}
-              </div>
-            </div>
+            <DataSourceInfo 
+              priceSource={priceData?.source}
+              lastUpdated={lastUpdated}
+            />
           </div>
         )}
       </CardContent>
     </Card>
   );
-};
-
-const IndicatorItem = ({ 
-  icon, 
-  label, 
-  value, 
-  trend 
-}: { 
-  icon: React.ReactNode;
-  label: string; 
-  value: string | number; 
-  trend?: "up" | "down" | "neutral"; 
-}) => {
-  let trendColors = "text-gray-500";
-  let trendIcon = null;
-  
-  if (trend === "up") {
-    trendColors = "text-green-600";
-    trendIcon = <ArrowUp size={14} />;
-  } else if (trend === "down") {
-    trendColors = "text-red-600";
-    trendIcon = <ArrowDown size={14} />;
-  }
-  
-  return (
-    <div className="flex items-center justify-between border rounded-md p-2">
-      <div className="flex items-center gap-2">
-        <div className="bg-muted p-1 rounded">
-          {icon}
-        </div>
-        <span className="text-sm">{label}</span>
-      </div>
-      <div className={`flex items-center gap-1 font-medium ${trendColors}`}>
-        {value}
-        {trendIcon}
-      </div>
-    </div>
-  );
-};
-
-const getSentimentTrend = (score?: number): "up" | "down" | "neutral" => {
-  if (!score) return "neutral";
-  if (score > 0.2) return "up";
-  if (score < -0.2) return "down";
-  return "neutral";
 };
