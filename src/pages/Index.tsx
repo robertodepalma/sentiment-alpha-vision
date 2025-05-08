@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import { SentimentOverview } from "@/components/SentimentOverview";
@@ -8,7 +7,6 @@ import { TickerDetails } from "@/components/TickerDetails";
 import { PlatformComparison } from "@/components/PlatformComparison";
 import { EmotionHeatmap } from "@/components/EmotionHeatmap";
 import { RecentPostsFeed } from "@/components/RecentPostsFeed";
-import { SettingsPanel } from "@/components/SettingsPanel";
 import { TickerSearch } from "@/components/TickerSearch";
 import { HypeScore } from "@/components/HypeScore";
 import { getCurrentSentiment } from "@/lib/mockData";

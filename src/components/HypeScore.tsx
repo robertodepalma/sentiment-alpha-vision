@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ArrowTrendingUpIcon, UsersIcon, ScaleIcon } from "lucide-react";
+import { TrendingUp, Users, Scale } from "lucide-react";
 import { getHypeScore } from "@/lib/mockData";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -27,7 +27,7 @@ export const HypeScore = ({ ticker = "AAPL" }: { ticker?: string }) => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-xl flex items-center gap-2">
-              <ArrowTrendingUpIcon size={18} />
+              <TrendingUp size={18} />
               Hype Score
             </CardTitle>
             <CardDescription>
@@ -45,7 +45,12 @@ export const HypeScore = ({ ticker = "AAPL" }: { ticker?: string }) => {
             <Progress 
               value={hypeData.score} 
               className="h-3"
-              indicatorClassName={hypeData.score >= 75 ? "bg-green-500" : hypeData.score >= 50 ? "bg-yellow-500" : "bg-red-500"}
+              // Apply conditional styling to the indicator with CSS
+              style={{
+                '--indicator-color': hypeData.score >= 75 ? 'rgb(34, 197, 94)' : 
+                                    hypeData.score >= 50 ? 'rgb(234, 179, 8)' : 
+                                    'rgb(239, 68, 68)'
+              } as React.CSSProperties}
             />
             <div className="w-full flex justify-between mt-1 text-xs text-muted-foreground">
               <div>Cold</div>
@@ -57,7 +62,7 @@ export const HypeScore = ({ ticker = "AAPL" }: { ticker?: string }) => {
         
         <div className="space-y-3 mt-4">
           <h4 className="text-sm font-medium flex items-center gap-1">
-            <ScaleIcon size={14} />
+            <Scale size={14} />
             Sentiment Breakdown
           </h4>
           
@@ -78,7 +83,7 @@ export const HypeScore = ({ ticker = "AAPL" }: { ticker?: string }) => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground cursor-help">
-                        <UsersIcon size={12} />
+                        <Users size={12} />
                         {formatNumber(item.followers)} followers
                       </div>
                     </TooltipTrigger>
