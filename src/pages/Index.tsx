@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import { SentimentOverview } from "@/components/SentimentOverview";
@@ -27,9 +28,6 @@ const Index = () => {
         <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Sentiment Dashboard</h2>
-            <p className="text-muted-foreground">
-              Real-time sentiment analysis based on Liu & Son (2024) methodology
-            </p>
           </div>
           <div className="md:w-auto">
             <TickerSearch onSearch={handleTickerChange} />

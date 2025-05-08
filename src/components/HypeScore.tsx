@@ -27,8 +27,12 @@ export const HypeScore = ({ ticker = "AAPL" }: { ticker?: string }) => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-xl flex items-center gap-2">
-              <TrendingUp size={18} />
-              Hype Score
+              <img 
+                src="/lovable-uploads/fe021022-f2cf-4c88-88cd-44a5e08dac7e.png" 
+                alt="Hype Stock Barometer Logo" 
+                className="h-7 w-7"
+              />
+              Hype Score Barometer
             </CardTitle>
             <CardDescription>
               Follower-weighted sentiment analysis for {ticker}
