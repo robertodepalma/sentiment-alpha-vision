@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRecentPosts } from "@/lib/mockData";
@@ -27,7 +26,6 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
         // If API fails or returns no results, use mock data
         setRedditPosts(getMockRedditPosts(ticker));
         toast({
-          title: "Using sample Reddit data",
           description: "We're showing sample data because the Reddit API returned no results.",
           duration: 5000,
         });
@@ -37,9 +35,8 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
       // Use mock data as fallback
       setRedditPosts(getMockRedditPosts(ticker));
       toast({
-        title: "Using sample Reddit data",
-        description: "We're showing sample data because the Reddit API could not be accessed.",
-        duration: 5000,
+          description: "We're showing sample data because the Reddit API could not be accessed.",
+          duration: 5000,
       });
     } finally {
       setIsLoading(false);
