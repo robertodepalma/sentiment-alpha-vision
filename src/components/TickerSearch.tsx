@@ -14,15 +14,24 @@ interface TickerSuggestion {
 
 export const TickerSearch = ({ 
   onSearch = (ticker: string) => {},
-  className 
+  className,
+  initialValue = ""
 }: { 
   onSearch?: (ticker: string) => void;
   className?: string;
+  initialValue?: string;
 }) => {
-  const [ticker, setTicker] = useState("");
+  const [ticker, setTicker] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<TickerSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Update local state when initialValue changes
+  useEffect(() => {
+    if (initialValue) {
+      setTicker(initialValue);
+    }
+  }, [initialValue]);
 
   const handleSearch = () => {
     if (ticker.trim()) {

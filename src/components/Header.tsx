@@ -4,7 +4,12 @@ import { Bell, Settings, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TickerSearch } from "./TickerSearch";
 
-export const Header = () => {
+interface HeaderProps {
+  currentTicker?: string;
+  onTickerChange?: (ticker: string) => void;
+}
+
+export const Header = ({ currentTicker, onTickerChange }: HeaderProps) => {
   return (
     <header className="border-b border-border bg-background py-3 px-6 flex items-center justify-between">
       <div className="flex items-center gap-6">
@@ -16,7 +21,9 @@ export const Header = () => {
           />
           <h1 className="text-2xl font-semibold">Hype Score Barometer</h1>
         </div>
-        <TickerSearch />
+        {onTickerChange && (
+          <TickerSearch onSearch={onTickerChange} initialValue={currentTicker} />
+        )}
       </div>
       
       <div className="flex items-center gap-2">

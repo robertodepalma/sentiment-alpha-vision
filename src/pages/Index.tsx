@@ -22,7 +22,7 @@ const Index = () => {
   
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
+      <Header onTickerChange={handleTickerChange} currentTicker={currentTicker} />
       
       <main className="flex-1 container mx-auto py-6 px-4 md:px-6">
         <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
