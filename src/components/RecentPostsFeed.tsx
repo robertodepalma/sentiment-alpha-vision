@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getRecentPosts } from "@/lib/mockData";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getRedditPosts, FormattedRedditPost, getMockRedditPosts } from "@/lib/api/redditApi";
+import { getRedditPosts, FormattedRedditPost, getMockRedditPosts } from "@/lib/api/reddit";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";

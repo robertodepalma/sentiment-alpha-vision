@@ -1,6 +1,6 @@
 
 import React from "react";
-import { FormattedRedditPost } from "@/lib/api/redditApi";
+import { FormattedRedditPost } from "@/lib/api/reddit";
 import { ExternalLink } from "lucide-react";
 import { getSentimentColorClass, getSentimentBgClass } from "./SocialPostCard";
 
