@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, ChartLine, Database, TrendingDown, TrendingUp } from "lucide-react";
 import { SentimentScore, TickerDetail, getTickerDetails } from "@/lib/mockData";
 import { getCompanyOverview, getDailyTimeSeries } from "@/lib/api/alphaVantage";
+import { getQuote, getCompanyProfile } from "@/lib/api/finnhub";
 
 export const TickerDetails = ({ 
   ticker = "AAPL", 
@@ -12,6 +13,7 @@ export const TickerDetails = ({
   sentiment?: SentimentScore;
 }) => {
   const [companyData, setCompanyData] = useState<any>(null);
+  const [finnhubData, setFinnhubData] = useState<any>(null);
   const [priceData, setPriceData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -23,41 +25,62 @@ export const TickerDetails = ({
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        console.log(`Fetching data for ticker: ${ticker} with new API key`);
+        console.log(`Fetching data for ticker: ${ticker}`);
         
-        // Fetch company overview
-        const overview = await getCompanyOverview(ticker);
-        if (overview && Object.keys(overview).length > 0 && !overview.Information) {
-          console.log("Received company data:", overview);
-          setCompanyData(overview);
-        } else {
-          console.log("Invalid company data received, falling back to mock data");
-          setCompanyData(null);
-        }
+        // Try Finnhub first
+        const finnhubQuote = await getQuote(ticker);
+        const finnhubProfile = await getCompanyProfile(ticker);
         
-        // Fetch latest price data
-        const timeSeriesData = await getDailyTimeSeries(ticker);
-        if (timeSeriesData && timeSeriesData["Time Series (Daily)"]) {
-          const timeSeriesEntries = Object.entries(timeSeriesData["Time Series (Daily)"]);
-          if (timeSeriesEntries.length > 0) {
-            // Get the most recent data point
-            const latestData = timeSeriesEntries[0][1];
+        if (finnhubProfile && Object.keys(finnhubProfile).length > 0) {
+          console.log("Received Finnhub company data:", finnhubProfile);
+          setFinnhubData(finnhubProfile);
+          
+          if (finnhubQuote) {
+            console.log("Received Finnhub price data:", finnhubQuote);
             setPriceData({
-              price: parseFloat(latestData["4. close"]),
-              change: calculatePercentageChange(
-                parseFloat(latestData["4. close"]),
-                parseFloat(timeSeriesEntries[1]?.[1]["4. close"] || latestData["1. open"])
-              )
+              price: finnhubQuote.c,
+              change: finnhubQuote.dp
             });
-            console.log("Received price data:", latestData);
           }
         } else {
-          console.log("Invalid price data received, falling back to mock data");
-          setPriceData(null);
+          // Fallback to Alpha Vantage if Finnhub fails
+          console.log("Finnhub data unavailable, trying Alpha Vantage");
+          
+          // Fetch company overview
+          const overview = await getCompanyOverview(ticker);
+          if (overview && Object.keys(overview).length > 0 && !overview.Information) {
+            console.log("Received Alpha Vantage company data:", overview);
+            setCompanyData(overview);
+          } else {
+            console.log("Invalid company data received, falling back to mock data");
+            setCompanyData(null);
+          }
+          
+          // Fetch latest price data
+          const timeSeriesData = await getDailyTimeSeries(ticker);
+          if (timeSeriesData && timeSeriesData["Time Series (Daily)"]) {
+            const timeSeriesEntries = Object.entries(timeSeriesData["Time Series (Daily)"]);
+            if (timeSeriesEntries.length > 0) {
+              // Get the most recent data point
+              const latestData = timeSeriesEntries[0][1];
+              setPriceData({
+                price: parseFloat(latestData["4. close"]),
+                change: calculatePercentageChange(
+                  parseFloat(latestData["4. close"]),
+                  parseFloat(timeSeriesEntries[1]?.[1]["4. close"] || latestData["1. open"])
+                )
+              });
+              console.log("Received Alpha Vantage price data:", latestData);
+            }
+          } else {
+            console.log("Invalid price data received, falling back to mock data");
+            setPriceData(null);
+          }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
         setCompanyData(null);
+        setFinnhubData(null);
         setPriceData(null);
       } finally {
         setIsLoading(false);
@@ -77,19 +100,38 @@ export const TickerDetails = ({
   const currentPrice = priceData?.price || mockDetails.currentPrice;
   const priceChange = priceData?.change || mockDetails.priceChange;
   
-  // Use real company data if available, otherwise fall back to mock data
-  const details = companyData ? {
-    ticker: companyData.Symbol || mockDetails.ticker,
-    name: companyData.Name || mockDetails.name,
-    sector: companyData.Sector || mockDetails.sector,
-    ceo: companyData.CEO || mockDetails.ceo,
-    headquarters: `${companyData.Address || ''}, ${companyData.City || ''}, ${companyData.Country || ''}` || mockDetails.headquarters,
-    marketCap: companyData.MarketCapitalization ? 
-      (parseInt(companyData.MarketCapitalization) >= 1000000000 ? 
-        `$${(parseInt(companyData.MarketCapitalization) / 1000000000).toFixed(2)}B` : 
-        `$${(parseInt(companyData.MarketCapitalization) / 1000000).toFixed(2)}M`) : 
-      mockDetails.marketCap
-  } : mockDetails;
+  // Use company data based on available sources
+  let details;
+  
+  if (finnhubData) {
+    details = {
+      ticker: finnhubData.ticker || mockDetails.ticker,
+      name: finnhubData.name || mockDetails.name,
+      sector: finnhubData.finnhubIndustry || mockDetails.sector,
+      ceo: "N/A", // Finnhub doesn't provide CEO information
+      headquarters: `${finnhubData.country || ""}` || mockDetails.headquarters,
+      marketCap: finnhubData.marketCapitalization ? 
+        (finnhubData.marketCapitalization >= 1000 ? 
+          `$${(finnhubData.marketCapitalization / 1000).toFixed(2)}B` : 
+          `$${finnhubData.marketCapitalization.toFixed(2)}M`) : 
+        mockDetails.marketCap
+    };
+  } else if (companyData) {
+    details = {
+      ticker: companyData.Symbol || mockDetails.ticker,
+      name: companyData.Name || mockDetails.name,
+      sector: companyData.Sector || mockDetails.sector,
+      ceo: companyData.CEO || mockDetails.ceo,
+      headquarters: `${companyData.Address || ''}, ${companyData.City || ''}, ${companyData.Country || ''}` || mockDetails.headquarters,
+      marketCap: companyData.MarketCapitalization ? 
+        (parseInt(companyData.MarketCapitalization) >= 1000000000 ? 
+          `$${(parseInt(companyData.MarketCapitalization) / 1000000000).toFixed(2)}B` : 
+          `$${(parseInt(companyData.MarketCapitalization) / 1000000).toFixed(2)}M`) : 
+        mockDetails.marketCap
+    };
+  } else {
+    details = mockDetails;
+  }
   
   return (
     <Card className="w-full">
@@ -149,7 +191,7 @@ export const TickerDetails = ({
                   <IndicatorItem 
                     icon={<ChartLine size={14} />}
                     label="Analyst Rating" 
-                    value={companyData?.AnalystRating || "Buy"} 
+                    value={finnhubData?.analystRating || companyData?.AnalystRating || "Buy"} 
                     trend="up" 
                   />
                   <IndicatorItem 

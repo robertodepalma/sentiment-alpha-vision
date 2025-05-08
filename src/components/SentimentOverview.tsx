@@ -1,134 +1,110 @@
 
-import React, { useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from "@/components/ui/tooltip";
-import { Info } from "lucide-react";
-import { AggregationMethod, getCurrentSentiment, getAggregationMethods } from "@/lib/mockData";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrendingDown, TrendingUp } from "lucide-react";
+import { getNewsSentiment } from "@/lib/api/finnhub";
+import { getCurrentSentiment } from "@/lib/mockData";
 
 export const SentimentOverview = ({ ticker = "AAPL" }: { ticker?: string }) => {
-  const [aggregationMethod, setAggregationMethod] = useState<AggregationMethod>("B-A1");
-  const sentiment = getCurrentSentiment(ticker);
-  const methods = getAggregationMethods();
+  const [sentimentData, setSentimentData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Convert sentiment score (-1 to 1) to a percentage (0 to 100)
-  const sentimentPercentage = Math.round((sentiment.score + 1) * 50);
+  // Get mock sentiment data
+  const mockSentiment = getCurrentSentiment(ticker);
   
-  const selectedMethod = methods.find(m => m.id === aggregationMethod);
+  useEffect(() => {
+    const fetchSentiment = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getNewsSentiment(ticker);
+        if (data) {
+          console.log("Received Finnhub sentiment data:", data);
+          setSentimentData(data);
+        } else {
+          console.log("Finnhub sentiment data unavailable, using mock data");
+          setSentimentData(null);
+        }
+      } catch (error) {
+        console.error("Error fetching sentiment data:", error);
+        setSentimentData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchSentiment();
+  }, [ticker]);
 
+  // Convert Finnhub sentiment to our format if available
+  const sentiment = sentimentData ? {
+    score: sentimentData.companyNewsScore,
+    trend: sentimentData.sentimentChange > 0 ? "up" : "down",
+    change: Math.abs(sentimentData.sentimentChange) * 100, // Convert to percentage
+  } : mockSentiment;
+  
   return (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <div>
-          <CardTitle className="text-xl">Sentiment Overview</CardTitle>
-          <CardDescription>
-            Current aggregate sentiment for {ticker}
-          </CardDescription>
-        </div>
-        <Select
-          value={aggregationMethod}
-          onValueChange={(value) => setAggregationMethod(value as AggregationMethod)}
-        >
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Select aggregation method" />
-          </SelectTrigger>
-          <SelectContent>
-            {methods.map((method) => (
-              <SelectItem key={method.id} value={method.id}>
-                {method.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xl">Market Sentiment</CardTitle>
+        <CardDescription>
+          Overall {ticker} sentiment across platforms
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-medium">Method: {selectedMethod?.name}</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info size={14} className="text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">{selectedMethod?.description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-8">
+            <div className="flex flex-col items-center">
+              <div className="text-3xl font-bold text-primary mb-2">{sentiment.score.toFixed(2)}</div>
+              <div className="text-sm text-muted-foreground">Sentiment Score</div>
+              <div className="mt-1 text-xs">
+                {sentiment.score > 0.6 ? "Very Bullish" : 
+                 sentiment.score > 0.2 ? "Bullish" :
+                 sentiment.score > -0.2 ? "Neutral" :
+                 sentiment.score > -0.6 ? "Bearish" : "Very Bearish"}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-lg font-bold ${getSentimentColorClass(sentiment.score)}`}>
-                {formatSentimentScore(sentiment.score)}
-              </span>
-              <span className={`text-sm ${getSentimentColorClass(sentiment.score)}`}>
-                {sentiment.label}
-              </span>
+            
+            <div className="flex flex-col items-center">
+              <div className={`text-2xl font-bold mb-2 flex items-center ${
+                sentiment.trend === "up" ? "text-green-500" : "text-red-500"
+              }`}>
+                {sentiment.trend === "up" ? <TrendingUp className="mr-1" size={24} /> : <TrendingDown className="mr-1" size={24} />}
+                {sentiment.change.toFixed(2)}%
+              </div>
+              <div className="text-sm text-muted-foreground">Weekly Change</div>
+              <div className="mt-1 text-xs">
+                {sentiment.trend === "up" ? "Improving" : "Declining"}
+              </div>
+            </div>
+            
+            {sentimentData && (
+              <div className="col-span-2 mt-4">
+                <div className="text-sm font-medium mb-2">Additional Insights</div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="bg-muted rounded-md p-3">
+                    <div className="text-muted-foreground mb-1">News Coverage</div>
+                    <div className="font-medium">{sentimentData.buzz?.articlesInLastWeek || 0} articles this week</div>
+                  </div>
+                  <div className="bg-muted rounded-md p-3">
+                    <div className="text-muted-foreground mb-1">Sector Average</div>
+                    <div className="font-medium">{sentimentData.sectorAverageNewsScore?.toFixed(2) || "N/A"}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="col-span-2 mt-2 text-xs text-muted-foreground text-center">
+              {sentimentData ? "Source: Finnhub.io API" : "Using simulated sentiment data"}
             </div>
           </div>
-          
-          <div className="relative pt-1">
-            <Progress value={sentimentPercentage} className="h-3" />
-            <div className="w-full flex justify-between mt-1 text-xs text-muted-foreground">
-              <div>Bearish</div>
-              <div>Neutral</div>
-              <div>Bullish</div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-3 gap-4 mt-6">
-          <SentimentMetric title="Analyst Rating" value="Buy" highlight />
-          <SentimentMetric title="Posts Analyzed" value="23,451" />
-          <SentimentMetric title="Confidence" value="85%" />
-        </div>
+        )}
       </CardContent>
     </Card>
   );
 };
 
-const SentimentMetric = ({ 
-  title, 
-  value, 
-  highlight = false 
-}: { 
-  title: string; 
-  value: string; 
-  highlight?: boolean;
-}) => (
-  <div className="text-center p-2 border rounded-md">
-    <p className="text-sm text-muted-foreground">{title}</p>
-    <p className={`text-lg font-semibold ${highlight ? 'text-[hsl(var(--primary))]' : ''}`}>
-      {value}
-    </p>
-  </div>
-);
-
-const getSentimentColorClass = (score: number): string => {
-  if (score > 0.2) return "sentiment-positive";
-  if (score < -0.2) return "sentiment-negative";
-  return "sentiment-neutral";
-};
-
-const formatSentimentScore = (score: number): string => {
-  // Format to 2 decimal places and ensure + sign for positive values
-  return (score > 0 ? "+" : "") + score.toFixed(2);
-};
+export default SentimentOverview;
