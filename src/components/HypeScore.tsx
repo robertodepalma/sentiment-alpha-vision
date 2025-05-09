@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 
 export const HypeScore = ({ ticker = "AAPL" }: { ticker?: string }) => {
-  const { score, breakdown, isLoading, error } = useHypeScore(ticker);
+  const { score, sentimentScore, breakdown, isLoading, error } = useHypeScore(ticker);
   
   // Determine styling based on score
   const getHypeColor = (score: number) => {

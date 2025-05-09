@@ -1,103 +1,88 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
+import { searchTickers } from "@/lib/api/finnhub";
 import { useToast } from "@/hooks/use-toast";
-import { searchTickers } from "@/lib/api/alphaVantage";
-import { TickerSuggestion } from "./types";
 
-export function useTickerSearch(initialValue: string = "") {
-  const [ticker, setTicker] = useState(initialValue);
-  const [suggestions, setSuggestions] = useState<TickerSuggestion[]>([]);
+export function useTickerSearch() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const debouncedQuery = useDebounce(query, 300);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Update local state when initialValue changes
   useEffect(() => {
-    if (initialValue) {
-      setTicker(initialValue);
-    }
-  }, [initialValue]);
-
-  // Debounced search for suggestions
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (ticker.trim().length < 2) {
-        setSuggestions([]);
-        setShowSuggestions(false);
+    const fetchResults = async () => {
+      if (debouncedQuery.length < 1) {
+        setResults([]);
         return;
       }
 
       setIsLoading(true);
       try {
-        const results = await searchTickers(ticker);
-        
-        if (results && results.length > 0) {
-          // Map results to the format we need with enhanced data
-          const mappedResults = results.map(item => ({
-            symbol: item.symbol,
-            name: item.name,
-            type: item.type,
-            region: item.region,
-            currency: item.currency,
-            sector: item.sector || 'N/A'
-          }));
-          
-          setSuggestions(mappedResults);
-          setShowSuggestions(mappedResults.length > 0);
+        const data = await searchTickers(debouncedQuery);
+        if (data && data.result) {
+          // Filter to only show stocks (not crypto, forex, etc)
+          const stockResults = data.result.filter(
+            (item: any) => item.type === "Common Stock"
+          );
+          setResults(stockResults.slice(0, 10)); // Limit to 10 results
         } else {
-          setSuggestions([]);
-          setShowSuggestions(false);
+          setResults([]);
         }
       } catch (error) {
-        console.error("Error fetching ticker suggestions:", error);
+        console.error("Error searching tickers:", error);
         toast({
-          title: "API Error",
-          description: "Could not fetch ticker suggestions. Using fallback data.",
-          variant: "destructive"
+          title: "Search Error",
+          description: "Failed to search for tickers. Please try again.",
+          variant: "destructive",
         });
-        
-        // Make sure we clear suggestions if there's an error
-        setSuggestions([]);
-        setShowSuggestions(false);
+        setResults([]);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    const timer = setTimeout(fetchSuggestions, 300);
-    return () => clearTimeout(timer);
-  }, [ticker, toast]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setTicker(value);
-    
-    // Show suggestions when typing
-    if (value.trim().length >= 2) {
+    fetchResults();
+  }, [debouncedQuery, toast]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(e.target.value);
+    if (e.target.value.length > 0) {
       setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
     }
   };
 
-  const handleClearSearch = () => {
-    setTicker("");
-    setSuggestions([]);
+  const handleSelectTicker = (ticker: string) => {
+    setQuery(ticker);
     setShowSuggestions(false);
   };
 
-  // Fix: Make sure this function accepts a boolean parameter to match usage in other components
-  const toggleSuggestions = (show: boolean) => {
-    setShowSuggestions(show);
+  const toggleSuggestions = (show?: boolean) => {
+    setShowSuggestions(show !== undefined ? show : !showSuggestions);
+  };
+
+  const clearSearch = () => {
+    setQuery("");
+    setResults([]);
+    setShowSuggestions(false);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   return {
-    ticker,
-    setTicker,
-    suggestions,
+    query,
+    results,
     isLoading,
     showSuggestions,
-    handleChange,
-    handleClearSearch,
+    inputRef,
+    handleInputChange,
+    handleSelectTicker,
     toggleSuggestions,
-    setShowSuggestions
+    clearSearch,
   };
 }

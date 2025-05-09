@@ -1,13 +1,16 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { getRedditPosts } from "@/lib/api/reddit";
-import { Post } from "@/lib/types";
+import { Post, SentimentScore } from "@/lib/types";
 import { FormattedRedditPost } from "@/lib/api/reddit/types";
 import { getHypeScore } from "@/lib/mockData";
 
 export function useHypeScore(ticker: string) {
   const [score, setScore] = useState<number>(50);
+  const [sentimentScore, setSentimentScore] = useState<SentimentScore>({
+    score: 0,
+    label: "neutral"
+  });
   const [breakdown, setBreakdown] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +36,14 @@ export function useHypeScore(ticker: string) {
           setScore(hypeData.score);
           setBreakdown(hypeData.breakdown);
           
+          // Set a normalized sentiment score (-1 to 1) for consistency
+          // Convert hype score (0-100) to sentiment score (-1 to 1)
+          const normalizedSentiment = ((hypeData.score - 50) / 50);
+          setSentimentScore({
+            score: normalizedSentiment,
+            label: getSentimentLabel(normalizedSentiment)
+          });
+          
           console.log("Calculated hype score from Reddit data:", hypeData);
         } else {
           // Fall back to mock data if no Reddit posts
@@ -40,6 +51,13 @@ export function useHypeScore(ticker: string) {
           const mockData = getHypeScore(ticker);
           setScore(mockData.score);
           setBreakdown(mockData.breakdown);
+          
+          // Set a normalized sentiment score for the mock data
+          const normalizedSentiment = ((mockData.score - 50) / 50);
+          setSentimentScore({
+            score: normalizedSentiment,
+            label: getSentimentLabel(normalizedSentiment)
+          });
         }
       } catch (err) {
         console.error("Error fetching hype data:", err);
@@ -54,6 +72,13 @@ export function useHypeScore(ticker: string) {
         const mockData = getHypeScore(ticker);
         setScore(mockData.score);
         setBreakdown(mockData.breakdown);
+        
+        // Set a normalized sentiment score for the mock data
+        const normalizedSentiment = ((mockData.score - 50) / 50);
+        setSentimentScore({
+          score: normalizedSentiment,
+          label: getSentimentLabel(normalizedSentiment)
+        });
       } finally {
         setIsLoading(false);
       }
@@ -77,6 +102,13 @@ export function useHypeScore(ticker: string) {
       shares: post.comments,
       url: post.url
     }));
+  };
+  
+  // Get sentiment label based on score
+  const getSentimentLabel = (score: number): "positive" | "negative" | "neutral" => {
+    if (score > 0.2) return "positive";
+    if (score < -0.2) return "negative";
+    return "neutral";
   };
   
   // Estimate followers based on post score
@@ -177,5 +209,5 @@ export function useHypeScore(ticker: string) {
     };
   };
   
-  return { score, breakdown, isLoading, error, posts };
+  return { score, sentimentScore, breakdown, isLoading, error, posts };
 }

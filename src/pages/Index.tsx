@@ -10,11 +10,11 @@ import { EmotionHeatmap } from "@/components/EmotionHeatmap";
 import { RecentPostsFeed } from "@/components/RecentPostsFeed";
 import { HypeScore } from "@/components/HypeScore";
 import { NewsSection } from "@/components/NewsSection";
-import { getCurrentSentiment } from "@/lib/mockData";
+import { useHypeScore } from "@/hooks/useHypeScore";
 
 const Index = () => {
   const [currentTicker, setCurrentTicker] = useState("AAPL");
-  const sentiment = getCurrentSentiment(currentTicker);
+  const { sentimentScore } = useHypeScore(currentTicker);
   
   const handleTickerChange = (ticker: string) => {
     setCurrentTicker(ticker);
@@ -34,7 +34,7 @@ const Index = () => {
             <SentimentOverview ticker={currentTicker} />
           </div>
           <div className="lg:col-span-1">
-            <TickerDetails ticker={currentTicker} sentiment={sentiment} />
+            <TickerDetails ticker={currentTicker} sentiment={sentimentScore} />
           </div>
           <div className="lg:col-span-1">
             <HypeScore ticker={currentTicker} />

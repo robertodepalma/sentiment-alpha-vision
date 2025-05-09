@@ -5,20 +5,12 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 import { getNewsSentiment } from "@/lib/api/finnhub";
 import { getCurrentSentiment } from "@/lib/mockData";
 import { SentimentScore } from "@/lib/types";
-
-// Define the combined sentiment type that can come from different sources
-type CombinedSentiment = SentimentScore | {
-  score: number;
-  trend: string;
-  change: number;
-};
+import { useHypeScore } from "@/hooks/useHypeScore";
 
 export const SentimentOverview = ({ ticker = "AAPL" }: { ticker?: string }) => {
   const [sentimentData, setSentimentData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Get mock sentiment data
-  const mockSentiment = getCurrentSentiment(ticker);
+  const { sentimentScore } = useHypeScore(ticker); // Use the hype score as the source of truth
   
   useEffect(() => {
     const fetchSentiment = async () => {
@@ -29,7 +21,7 @@ export const SentimentOverview = ({ ticker = "AAPL" }: { ticker?: string }) => {
           console.log("Received Finnhub sentiment data:", data);
           setSentimentData(data);
         } else {
-          console.log("Finnhub sentiment data unavailable, using mock data");
+          console.log("Finnhub sentiment data unavailable, using local data");
           setSentimentData(null);
         }
       } catch (error) {
@@ -43,16 +35,21 @@ export const SentimentOverview = ({ ticker = "AAPL" }: { ticker?: string }) => {
     fetchSentiment();
   }, [ticker]);
 
-  // Convert Finnhub sentiment to our format if available
-  const sentiment: CombinedSentiment = sentimentData ? {
-    score: sentimentData.companyNewsScore,
-    trend: sentimentData.sentimentChange > 0 ? "up" : "down",
-    change: Math.abs(sentimentData.sentimentChange) * 100, // Convert to percentage
-  } : mockSentiment;
-  
   // Type guard to check if the sentiment data has trend and change properties
-  const hasTrendData = (data: CombinedSentiment): data is { score: number; trend: string; change: number } => {
+  const hasTrendData = (data: any): data is { score: number; trend: string; change: number } => {
     return 'trend' in data && 'change' in data;
+  };
+
+  // If we have Finnhub data, add trend info to our sentiment
+  const sentiment = sentimentData ? {
+    score: sentimentScore.score,
+    label: sentimentScore.label,
+    trend: sentimentData.sentimentChange > 0 ? "up" : "down",
+    change: Math.abs(sentimentData.sentimentChange) * 100,
+  } : {
+    ...sentimentScore,
+    trend: "neutral",
+    change: 0
   };
   
   return (
@@ -113,7 +110,7 @@ export const SentimentOverview = ({ ticker = "AAPL" }: { ticker?: string }) => {
             )}
             
             <div className="col-span-2 mt-2 text-xs text-muted-foreground text-center">
-              {sentimentData ? "Source: Finnhub.io API" : "Using simulated sentiment data"}
+              {sentimentData ? "Source: Finnhub.io API" : "Using calculated sentiment data"}
             </div>
           </div>
         )}
