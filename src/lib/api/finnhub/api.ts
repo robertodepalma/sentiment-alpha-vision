@@ -1,3 +1,4 @@
+
 import { FINNHUB_API_KEY, BASE_URL, isApiLimited } from './config';
 import { FinnhubQuote, FinnhubCompanyProfile, FinnhubSentiment, FinnhubCandle } from './types';
 
@@ -95,6 +96,8 @@ export async function getStockCandles(
   to: number = Math.floor(Date.now() / 1000)  // Current timestamp in seconds
 ): Promise<FinnhubCandle | null> {
   try {
+    console.log(`Fetching Finnhub candles for ${symbol} from ${new Date(from * 1000).toDateString()} to ${new Date(to * 1000).toDateString()}`);
+    
     const response = await fetch(
       `${BASE_URL}/stock/candle?symbol=${symbol}&resolution=${resolution}&from=${from}&to=${to}&token=${FINNHUB_API_KEY}`
     );
@@ -105,6 +108,7 @@ export async function getStockCandles(
       return null;
     }
     
+    console.log(`Received ${data.t?.length || 0} candles from Finnhub`);
     return data as FinnhubCandle;
   } catch (error) {
     console.error('Error fetching stock candles from Finnhub:', error);

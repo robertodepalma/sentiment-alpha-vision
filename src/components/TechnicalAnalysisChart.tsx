@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "./ticker-details";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 // Import the new components and utility functions
 import { generateStockData, getDaysByTimeRange, TimeRange, Indicator, IndicatorConfig } from "./chart-utils/generateStockData";
@@ -35,11 +36,31 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
   const from = to - (days * 24 * 60 * 60); // Start time based on selected days
   
   // Fetch real data from Finnhub
-  const { data: finnhubData, isLoading } = useQuery({
+  const { data: finnhubData, isLoading, error } = useQuery({
     queryKey: ['stockCandles', ticker, timeRange],
     queryFn: () => getStockCandles(ticker, 'D', from, to),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000,   // 15 minutes
   });
 
+  // Show toast on error
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load chart data from Finnhub", {
+        description: "Using fallback data instead."
+      });
+    }
+  }, [error]);
+
+  // Show toast on successful data fetch (only on first load)
+  useEffect(() => {
+    if (finnhubData && finnhubData.s === 'ok' && finnhubData.t.length > 0) {
+      toast.success("Loaded real market data", {
+        description: `Showing ${finnhubData.t.length} data points from Finnhub`
+      });
+    }
+  }, [ticker]); // Only when ticker changes
+  
   // Process the data
   const stockData = finnhubData 
     ? formatFinnhubCandles(finnhubData)
@@ -67,7 +88,7 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="h-[380px]">
+          <div className="h-[380px] flex items-center justify-center">
             <LoadingSpinner />
           </div>
         ) : (
