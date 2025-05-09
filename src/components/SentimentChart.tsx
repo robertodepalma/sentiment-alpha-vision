@@ -133,7 +133,7 @@ export const SentimentChart = ({ ticker = "AAPL" }: { ticker?: string }) => {
         
         <div className="mt-4 flex justify-between text-sm text-muted-foreground">
           <div>
-            Source: Aggregated from Twitter, Reddit, StockTwits, and News
+            Source: Aggregated from X, Reddit, StockTwits, and News
           </div>
           <div>
             Last updated: {new Date().toLocaleTimeString()}
