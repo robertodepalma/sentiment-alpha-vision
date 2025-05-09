@@ -15,9 +15,9 @@ export const Header = ({ currentTicker, onTickerChange }: HeaderProps) => {
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
           <img 
-            src="/lovable-uploads/fe021022-f2cf-4c88-88cd-44a5e08dac7e.png" 
+            src="/lovable-uploads/d7eb8650-e751-464c-83d1-5a89c3dd3b8e.png" 
             alt="Hype Score Barometer Logo" 
-            className="h-8 w-8"
+            className="h-10 w-10"
           />
           <h1 className="text-2xl font-semibold">Hype Score Barometer</h1>
         </div>
