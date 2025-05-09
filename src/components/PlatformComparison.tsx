@@ -1,11 +1,17 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { getPlatformComparison } from "@/lib/mockData";
+import { PlatformSentiment } from "@/lib/types";
 
 export const PlatformComparison = ({ ticker = "AAPL" }: { ticker?: string }) => {
-  const platformData = getPlatformComparison();
+  const [platformData, setPlatformData] = useState<PlatformSentiment[]>([]);
+  
+  // Update data when ticker changes
+  useEffect(() => {
+    setPlatformData(getPlatformComparison(ticker));
+  }, [ticker]);
   
   // Colors for the different platforms
   const platformColors = {

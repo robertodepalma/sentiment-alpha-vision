@@ -1,10 +1,16 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getEmotionData } from "@/lib/mockData";
+import { EmotionData } from "@/lib/types";
 
 export const EmotionHeatmap = ({ ticker = "AAPL" }: { ticker?: string }) => {
-  const emotions = getEmotionData();
+  const [emotions, setEmotions] = useState<EmotionData[]>([]);
+  
+  // Update data when ticker changes
+  useEffect(() => {
+    setEmotions(getEmotionData(ticker));
+  }, [ticker]);
   
   return (
     <Card className="w-full">
