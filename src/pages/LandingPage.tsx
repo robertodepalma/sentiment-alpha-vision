@@ -14,24 +14,24 @@ const LandingPage = () => {
         <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,rgba(30,64,175,0.15),rgba(0,0,0,0)_50%)]"></div>
         
         <div className="container relative z-10 mx-auto flex max-w-5xl flex-col items-center gap-8 text-center">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center gap-6">
             <img
               src="/lovable-uploads/d7eb8650-e751-464c-83d1-5a89c3dd3b8e.png"
               alt="Hype Score Barometer Logo"
-              className="h-16 w-16 md:h-20 md:w-20"
+              className="h-32 w-32 md:h-40 md:w-40"
             />
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              Hype Score <span className="text-primary">Barometer</span>
+            <h1 className="text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
+              Let's get <span className="text-primary">hyped!</span>
             </h1>
+            
+            <p className="max-w-2xl text-xl md:text-2xl font-medium text-muted-foreground">
+              Where sentiment meets strategy.
+            </p>
           </div>
           
-          <p className="text-xl md:text-2xl font-medium text-muted-foreground">
-            Where sentiment meets strategy.
-          </p>
-          
-          <div className="mt-6 flex flex-col gap-4 sm:flex-row">
-            <Button size="lg" onClick={() => navigate("/login")} className="group">
-              Get Started
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+            <Button size="lg" onClick={() => navigate("/dashboard")} className="group">
+              Explore Dashboard
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
             <Button variant="outline" size="lg" onClick={() => navigate("/login")}>
@@ -39,7 +39,7 @@ const LandingPage = () => {
             </Button>
           </div>
           
-          <div className="mt-12 grid gap-8 md:mt-16 md:grid-cols-3">
+          <div className="mt-16 grid gap-8 md:mt-24 md:grid-cols-3">
             {[
               {
                 title: "Real-time Sentiment Analysis",
