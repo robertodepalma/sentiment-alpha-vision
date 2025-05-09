@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRecentPosts } from "@/lib/mockData";
@@ -15,10 +16,10 @@ import RedditPostCard from "@/components/posts/RedditPostCard";
 import PostSkeleton from "@/components/posts/PostSkeleton";
 
 export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
-  const [twitterPosts, setTwitterPosts] = useState<Post[]>([]);
+  const [xPosts, setXPosts] = useState<Post[]>([]);
   const [redditPosts, setRedditPosts] = useState<FormattedRedditPost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("twitter");
+  const [activeTab, setActiveTab] = useState("x");
   
   const fetchRedditPosts = async () => {
     setIsLoading(true);
@@ -48,11 +49,11 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
   };
   
   useEffect(() => {
-    // Filter only Twitter posts from the social media data
+    // Filter only X posts from the social media data
     const allPosts = getRecentPosts();
-    const filteredTwitterPosts = allPosts.filter(post => post.platform === "Twitter");
-    // Sort Twitter posts by timestamp too (newest first)
-    filteredTwitterPosts.sort((a, b) => {
+    const filteredXPosts = allPosts.filter(post => post.platform === "X");
+    // Sort X posts by timestamp too (newest first)
+    filteredXPosts.sort((a, b) => {
       const timeA = a.timestamp.includes("ago") ? 
         parseRelativeTime(a.timestamp) : 
         new Date(a.timestamp).getTime();
@@ -61,7 +62,7 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
         new Date(b.timestamp).getTime();
       return timeB - timeA;
     });
-    setTwitterPosts(filteredTwitterPosts);
+    setXPosts(filteredXPosts);
     fetchRedditPosts();
   }, [ticker]);
   
@@ -92,11 +93,11 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
   };
   
   const handleRefresh = () => {
-    if (activeTab === "twitter") {
+    if (activeTab === "x") {
       const allPosts = getRecentPosts();
-      const filteredTwitterPosts = allPosts.filter(post => post.platform === "Twitter");
-      // Sort Twitter posts by timestamp (newest first)
-      filteredTwitterPosts.sort((a, b) => {
+      const filteredXPosts = allPosts.filter(post => post.platform === "X");
+      // Sort X posts by timestamp (newest first)
+      filteredXPosts.sort((a, b) => {
         const timeA = a.timestamp.includes("ago") ? 
           parseRelativeTime(a.timestamp) : 
           new Date(a.timestamp).getTime();
@@ -105,7 +106,7 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
           new Date(b.timestamp).getTime();
         return timeB - timeA;
       });
-      setTwitterPosts(filteredTwitterPosts);
+      setXPosts(filteredXPosts);
     } else {
       fetchRedditPosts();
     }
@@ -132,21 +133,21 @@ export const RecentPostsFeed = ({ ticker = "AAPL" }: { ticker?: string }) => {
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="twitter" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="x" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
-            <TabsTrigger value="twitter">Twitter</TabsTrigger>
+            <TabsTrigger value="x">X</TabsTrigger>
             <TabsTrigger value="reddit">Reddit</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="twitter">
+          <TabsContent value="x">
             <ScrollArea className="h-[300px]">
               <div className="space-y-4">
-                {twitterPosts.length === 0 ? (
+                {xPosts.length === 0 ? (
                   <div className="text-center py-6 text-muted-foreground">
-                    No Twitter posts found for {ticker}
+                    No X posts found for {ticker}
                   </div>
                 ) : (
-                  twitterPosts.map((post) => (
+                  xPosts.map((post) => (
                     <SocialPostCard key={post.id} post={post} />
                   ))
                 )}

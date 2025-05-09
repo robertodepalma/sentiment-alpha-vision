@@ -5,7 +5,7 @@ export const getRecentPosts = (): Post[] => {
   return [
     {
       id: "1",
-      platform: "Twitter",
+      platform: "X",
       author: "MarketWatcher",
       authorFollowers: 145000,
       content: "AAPL showing strong momentum after earnings beat. Expect continued upward trajectory into next quarter.",
@@ -44,7 +44,7 @@ export const getRecentPosts = (): Post[] => {
     },
     {
       id: "4",
-      platform: "Twitter",
+      platform: "X",
       author: "FinanceGuru",
       authorFollowers: 375000,
       content: "AMZN's logistics improvements will dramatically cut costs. This is a game-changer!",
