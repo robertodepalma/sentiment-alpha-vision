@@ -1,9 +1,10 @@
+
 import { PlatformSentiment, EmotionData } from "../types";
 
 export const getPlatformComparison = (ticker: string = "AAPL"): PlatformSentiment[] => {
   // Generate different mock data based on the ticker
   const baseData = [
-    { platform: "Twitter", sentiment: 0.67, volume: 12450, confidence: 0.85 },
+    { platform: "X", sentiment: 0.67, volume: 12450, confidence: 0.85 },
     { platform: "Reddit", sentiment: 0.42, volume: 8300, confidence: 0.78 },
     { platform: "StockTwits", sentiment: 0.73, volume: 5200, confidence: 0.82 },
     { platform: "News Media", sentiment: 0.31, volume: 1800, confidence: 0.91 }
