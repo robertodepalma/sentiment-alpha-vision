@@ -1,11 +1,13 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { searchTickers } from "@/lib/api/finnhub";
 import { useToast } from "@/hooks/use-toast";
+import { TickerSuggestion } from "./types";
 
-export function useTickerSearch() {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+export function useTickerSearch(initialValue: string = "") {
+  const [query, setQuery] = useState(initialValue);
+  const [results, setResults] = useState<TickerSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debouncedQuery = useDebounce(query, 300);
@@ -26,7 +28,14 @@ export function useTickerSearch() {
           // Filter to only show stocks (not crypto, forex, etc)
           const stockResults = data.result.filter(
             (item: any) => item.type === "Common Stock"
-          );
+          ).map((item: any) => ({
+            symbol: item.symbol,
+            name: item.description,
+            type: item.type,
+            region: item.primary_exchange,
+            currency: item.currency,
+            sector: 'N/A' // Finnhub search doesn't return sector info
+          }));
           setResults(stockResults.slice(0, 10)); // Limit to 10 results
         } else {
           setResults([]);

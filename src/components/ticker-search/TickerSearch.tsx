@@ -12,45 +12,46 @@ export const TickerSearch = ({
   initialValue = ""
 }: TickerSearchProps) => {
   const {
-    ticker,
-    suggestions,
+    query,
+    results,
     isLoading,
     showSuggestions,
-    handleChange,
-    handleClearSearch,
-    setShowSuggestions
-  } = useTickerSearch(initialValue);
+    inputRef,
+    handleInputChange,
+    handleSelectTicker,
+    toggleSuggestions,
+    clearSearch
+  } = useTickerSearch();
 
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Handle clicks outside the dropdown to close it
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
+        toggleSuggestions(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [setShowSuggestions]);
+  }, [toggleSuggestions]);
 
   const handleSearch = () => {
-    if (ticker.trim()) {
-      onSearch(ticker.toUpperCase());
-      setShowSuggestions(false);
+    if (query.trim()) {
+      onSearch(query.toUpperCase());
+      toggleSuggestions(false);
     }
   };
 
   const selectSuggestion = (suggestion: TickerSuggestion) => {
     onSearch(suggestion.symbol);
-    setShowSuggestions(false);
+    toggleSuggestions(false);
   };
 
   const handleFocus = () => {
-    if (ticker.trim().length >= 2 && suggestions.length > 0) {
-      setShowSuggestions(true);
+    if (query.trim().length >= 2 && results.length > 0) {
+      toggleSuggestions(true);
     }
   };
 
@@ -61,10 +62,10 @@ export const TickerSearch = ({
   return (
     <div className={cn("relative", className)} ref={dropdownRef}>
       <SearchInput
-        ticker={ticker}
-        onChange={handleChange}
+        ticker={query}
+        onChange={handleInputChange}
         onSearch={handleSearch}
-        onClear={handleClearSearch}
+        onClear={clearSearch}
         onKeyDown={handleKeyDown}
         onFocus={handleFocus}
         isLoading={isLoading}
@@ -72,7 +73,7 @@ export const TickerSearch = ({
       />
       
       <SuggestionsList
-        suggestions={suggestions}
+        suggestions={results}
         isLoading={isLoading}
         showSuggestions={showSuggestions}
         onSelect={selectSuggestion}

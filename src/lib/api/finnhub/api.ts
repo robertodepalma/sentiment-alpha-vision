@@ -61,3 +61,23 @@ export async function getNewsSentiment(symbol: string): Promise<FinnhubSentiment
     return null;
   }
 }
+
+/**
+ * Search for ticker symbols
+ */
+export async function searchTickers(query: string) {
+  try {
+    const response = await fetch(`${BASE_URL}/search?q=${query}&token=${FINNHUB_API_KEY}`);
+    const data = await response.json();
+    
+    if (isApiLimited(data)) {
+      console.error('Finnhub API limit reached or error occurred:', data);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error searching tickers from Finnhub:', error);
+    return null;
+  }
+}
