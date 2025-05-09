@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner } from "./ticker-details";
+import { useQuery } from "@tanstack/react-query";
 
-// Import the new components
+// Import the new components and utility functions
 import { generateStockData, getDaysByTimeRange, TimeRange, Indicator, IndicatorConfig } from "./chart-utils/generateStockData";
+import { formatFinnhubCandles } from "./chart-utils/formatFinnhubData";
+import { getStockCandles } from "@/lib/api/finnhub/api";
 import { PriceChart } from "./chart-components/PriceChart";
 import { VolumeChart } from "./chart-components/VolumeChart";
 import { IndicatorChart } from "./chart-components/IndicatorChart";
@@ -25,21 +28,22 @@ export const TechnicalAnalysisChart = ({ ticker = "AAPL" }: { ticker?: string })
     macd: { name: "MACD", color: "hsl(var(--chart-orange))", visible: false },
     bb: { name: "Bollinger", color: "hsl(var(--chart-red))", visible: false }
   });
-  const [isLoading, setIsLoading] = useState(false);
   
-  // Generate stock data based on ticker and time range
+  // Calculate time period based on selected range
   const days = getDaysByTimeRange(timeRange);
-  const stockData = generateStockData(ticker, days);
+  const to = Math.floor(Date.now() / 1000); // Current time in seconds
+  const from = to - (days * 24 * 60 * 60); // Start time based on selected days
   
-  useEffect(() => {
-    // Simulate loading
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [ticker, timeRange]);
+  // Fetch real data from Finnhub
+  const { data: finnhubData, isLoading } = useQuery({
+    queryKey: ['stockCandles', ticker, timeRange],
+    queryFn: () => getStockCandles(ticker, 'D', from, to),
+  });
+
+  // Process the data
+  const stockData = finnhubData 
+    ? formatFinnhubCandles(finnhubData)
+    : generateStockData(ticker, days); // Fallback to mock data if API call fails
   
   // Toggle indicator visibility
   const toggleIndicator = (indicator: Indicator) => {

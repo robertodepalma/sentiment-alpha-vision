@@ -39,3 +39,13 @@ export interface FinnhubSentiment {
   sentimentChange: number;
   symbol: string;
 }
+
+export interface FinnhubCandle {
+  c: number[];  // Close prices
+  h: number[];  // High prices
+  l: number[];  // Low prices
+  o: number[];  // Open prices
+  s: string;    // Status ('ok' or 'no_data')
+  t: number[];  // Timestamps
+  v: number[];  // Volumes
+}
