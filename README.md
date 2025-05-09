@@ -49,7 +49,7 @@ The application integrates with several financial and social media APIs:
 
 ```bash
 # 1. Clone the repository
-git clone <YOUR_REPOSITORY_URL>
+git clone https://github.com/yourusername/hype-score-barometer.git
 
 # 2. Navigate to the project directory
 cd hype-score-barometer
@@ -69,6 +69,16 @@ To run this application with all features, you'll need to obtain API keys for th
 - Finnhub API
 - NewsData.io API
 - Reddit API
+
+Create a `.env` file in the root directory and add your API keys:
+
+```
+VITE_ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key
+VITE_FINNHUB_API_KEY=your_finnhub_api_key
+VITE_NEWSDATA_API_KEY=your_newsdata_api_key
+VITE_REDDIT_CLIENT_ID=your_reddit_client_id
+VITE_REDDIT_CLIENT_SECRET=your_reddit_client_secret
+```
 
 ## Project Structure
 
@@ -123,12 +133,23 @@ When adding new features:
 3. Update existing components to integrate new features
 4. Use mock data for testing during development
 
+## Building for Production
+
+```bash
+npm run build
+```
+
+This command will generate a production build in the `dist` directory.
+
 ## Deployment
 
-The project can be deployed using:
+The application can be deployed to any static hosting service including:
 
-- **Lovable Hosting**: Click on Share -> Publish in the Lovable interface
-- **Custom Domain**: Configure via Project > Settings > Domains
+- GitHub Pages
+- Netlify
+- Vercel
+- AWS S3
+- Firebase Hosting
 
 ## Contributing
 
@@ -142,14 +163,10 @@ Contributions are welcome! Please:
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- Built with [Lovable](https://lovable.dev)
 - UI components from [shadcn/ui](https://ui.shadcn.com/)
 - Icons from [Lucide](https://lucide.dev/)
 
-## Contact
-
-For questions or feedback, please reach out through the project repository.
