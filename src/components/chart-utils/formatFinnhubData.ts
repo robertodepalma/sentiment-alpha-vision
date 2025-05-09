@@ -56,6 +56,7 @@ export function formatFinnhubCandles(data: FinnhubCandle | null): StockDataPoint
     let losses = 0;
     const rsiPeriod = 14;
     const availablePeriod = Math.min(rsiPeriod, index);
+    let rsi = 50; // Default neutral value
     
     if (availablePeriod > 0) {
       for (let i = 1; i <= availablePeriod; i++) {
@@ -76,9 +77,6 @@ export function formatFinnhubCandles(data: FinnhubCandle | null): StockDataPoint
         const rs = avgGain / avgLoss;
         rsi = parseFloat((100 - (100 / (1 + rs))).toFixed(2));
       }
-    } else {
-      // Not enough data for RSI calculation
-      rsi = 50; // Neutral value
     }
     
     // Calculate MACD (Moving Average Convergence Divergence)
